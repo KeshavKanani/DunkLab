@@ -1,18 +1,194 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 
+// Accent color options
+const ACCENT_COLORS = {
+  orange: "#FF4D00",
+  blue: "#00D4FF",
+  purple: "#8B5CF6",
+  green: "#38B56A",
+};
+
+// Theme display names
+const THEME_NAMES = {
+  orange: "🏀 Classic Dunk Lab",
+  blue: "🌊 Ocean Blue",
+  purple: "⚡ Electric Purple",
+  green: "💎 Emerald Green",
+};
+
+// Generate workout colors based on theme
+const getWorkoutColors = (accentColor) => {
+  const base = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
+  
+  // For orange theme, keep original behavior
+  if (accentColor === "orange") {
+    return {
+      jump: C.orange,
+      strength: C.purple,
+      speed: C.gold,
+      vertical: C.cyan,
+    };
+  }
+  
+  // For other themes, use theme-based variants with visual distinction
+  // Using different shades, opacity levels, and brightness
+  if (accentColor === "blue") {
+    return {
+      jump: base,              // #00D4FF - main accent
+      strength: "#0066CC",    // darker blue
+      speed: "#66E0FF",        // lighter blue
+      vertical: "#004080",     // very dark blue
+    };
+  }
+  
+  if (accentColor === "purple") {
+    return {
+      jump: base,              // #8B5CF6 - main accent
+      strength: "#6D28D9",     // darker purple
+      speed: "#A78BFA",        // lighter purple
+      vertical: "#4C1D95",     // very dark purple
+    };
+  }
+  
+  if (accentColor === "green") {
+    return {
+      jump: base,              // #38B56A - main accent
+      strength: "#1E7B4A",     // darker green
+      speed: "#6EE7B7",        // lighter green
+      vertical: "#0F5132",     // very dark green
+    };
+  }
+  
+  // Fallback to orange
+  return {
+    jump: C.orange,
+    strength: C.purple,
+    speed: C.gold,
+    vertical: C.cyan,
+  };
+};
+
+// Generate WORKOUTS array with dynamic colors
+const getWorkouts = (accentColor) => {
+  const colors = getWorkoutColors(accentColor);
+  
+  return [
+    {title:"JUMP TRAINING",  color:colors.jump, est:"20 min",
+     warmup:"High knees 30s · Leg swings 10/side · Jump rope 60s",
+     cool:"Calf stretch 60s · Quad stretch 30s/side · Hip flexor 45s",
+     drills:[
+      {name:"Box Jumps",         sets:4,reps:"6",  tip:"Land soft — reset fully before each rep",
+       how:"Stand in front of a box at knee height. Jump onto it with both feet. Land softly with knees bent. Step down (don't jump down). Repeat.",
+       focus:"Explosive hip extension. Soft landings to protect joints. Full reset between reps.",
+       why:"Builds explosive power and teaches proper landing mechanics essential for jumping."},
+      {name:"Depth Drops",       sets:3,reps:"8",  tip:"Step off, absorb on contact — trains elasticity",
+       how:"Stand on a box 12-18 inches high. Step off (don't jump). Land and immediately jump as high as possible. Reset and repeat.",
+       focus:"Absorb impact with legs. Immediate explosive jump upon landing. Minimize ground contact time.",
+       why:"Trains the stretch-shortening cycle — your tendons' ability to store and release elastic energy for higher jumps."},
+      {name:"Broad Jumps",       sets:3,reps:"5",  tip:"Full arm drive, maximum horizontal distance",
+       how:"Start in athletic stance. Swing arms back, then explosively jump forward. Land softly with knees bent. Measure distance. Reset fully between reps.",
+       focus:"Maximum horizontal distance. Arm swing coordination. Soft, controlled landings.",
+       why:"Develops horizontal power that transfers to vertical jumping. Improves coordination and explosive force production."},
+      {name:"Jump Rope Fast",    sets:3,reps:"60s",tip:"Forefoot only — minimal contact time",
+       how:"Jump rope at maximum speed. Stay on balls of feet. Keep jumps small and quick. Maintain rhythm for the full duration.",
+       focus:"Fast foot turnover. Staying on forefoot. Minimal ground contact time.",
+       why:"Improves foot speed, calf strength, and coordination — all critical for quick, explosive movements."},
+      {name:"Approach Jumps",    sets:3,reps:"5",  tip:"2-step gather, reach max every rep",
+       how:"Take 2-3 steps to build momentum, gather your feet, and jump as high as possible reaching with one hand. Land softly. Reset between reps.",
+       focus:"Approach speed. Footwork timing. Maximum height on every attempt.",
+       why:"Simulates game-like jumping conditions. Builds the approach mechanics used in actual dunk attempts."},
+     ]},
+    {title:"STRENGTH DAY",   color:colors.strength, est:"22 min",
+     warmup:"Glute bridges ×15 · Monster walks ×20 · Hip circles",
+     cool:"Deep squat hold 60s · Lizard stretch 60s/side · Hamstring stretch",
+     drills:[
+      {name:"Goblet Squat",          sets:4,reps:"8",   tip:"Full depth, chest up, elbows inside knees",
+       how:"Hold a dumbbell at chest height with both hands. Squat down until thighs are parallel to floor. Keep chest up and elbows inside knees. Drive through heels to stand.",
+       focus:"Full depth squat. Upright torso. Heels driving into ground.",
+       why:"Builds leg strength and squat pattern. Essential foundation for explosive jumping power."},
+      {name:"Bulgarian Split Squat", sets:3,reps:"8/s", tip:"Upright torso — slow down, explode up",
+       how:"Place one foot on a bench behind you. Lower into a lunge until back knee nearly touches ground. Drive through front heel to stand. Keep torso upright throughout.",
+       focus:"Upright torso. Controlled descent. Explosive drive up through front heel.",
+       why:"Builds single-leg strength and fixes imbalances. Critical for jumping off one foot."},
+      {name:"Hip Thrust",            sets:4,reps:"12",  tip:"Full extension, hard glute squeeze",
+       how:"Lean upper back against a bench. Feet flat on floor, knees bent. Lower hips, then drive them up by squeezing glutes hard at the top. Hold briefly, then lower.",
+       focus:"Full hip extension. Hard glute squeeze at top. Controlled tempo.",
+       why:"Hip strength directly powers vertical jumps. Glutes are your primary jumping muscles."},
+      {name:"Single-Leg Calf Raise", sets:3,reps:"15/s",tip:"Full range — this is your spring",
+       how:"Stand on edge of a step on one foot. Lower heel below step, then rise up onto toes as high as possible. Hold at top, then lower slowly. Use wall for balance if needed.",
+       focus:"Full range of motion. Slow controlled eccentric. Hold at peak contraction.",
+       why:"Achilles tendon is your spring. Strong calves = more elastic energy for higher jumps."},
+      {name:"Tuck Jumps",            sets:3,reps:"8",   tip:"Drive knees to chest, land light",
+       how:"Start in athletic stance. Jump explosively and bring knees to chest in mid-air. Land softly on balls of feet. Immediately reset and repeat.",
+       focus:"Maximum height. Knees to chest. Soft, quiet landings.",
+       why:"Develops explosive leg power and teaches quick ground contact times essential for jumping."},
+     ]},
+    {title:"SPEED & AGILITY", color:colors.speed, est:"18 min",
+     warmup:"Butt kicks 30s · High knees 30s · Lateral shuffles 20s",
+     cool:"Hip flexor 45s/side · IT band stretch · Walk 2 min",
+     drills:[
+      {name:"Sprint Starts 10yd",    sets:6,reps:"1",  tip:"Lean forward, drive your arms first",
+       how:"Start in athletic stance. On command, explode forward driving arms hard. Accelerate for 10 yards at maximum effort. Walk back to recover. Repeat.",
+       focus:"Explosive first step. Arm drive. Low body angle at start.",
+       why:"Develops acceleration and explosive power off the ground — critical for jump takeoff."},
+      {name:"Lateral Shuffle",       sets:4,reps:"30s",tip:"Stay low — feet never cross",
+       how:"Start in athletic stance. Shuffle laterally to the right, keeping feet shoulder-width apart and never crossing. Stay low with knees bent. Shuffle back left. Repeat for 30 seconds.",
+       focus:"Stay in athletic stance. Feet never cross. Quick lateral movement.",
+       why:"Builds lateral quickness and hip stability — important for defensive movements and change of direction."},
+      {name:"5-10-5 Drill",          sets:5,reps:"1",  tip:"Plant hard on every cut",
+       how:"Start at middle cone. Sprint 5 yards right, touch line. Sprint 10 yards left, touch line. Sprint 5 yards back to start. Plant hard and change direction quickly at each turn.",
+       focus:"Explosive cuts. Hard plants. Quick change of direction.",
+       why:"Trains acceleration, deceleration, and change of direction — essential for basketball agility."},
+      {name:"Reactive Backpedal",    sets:4,reps:"20s",tip:"Eyes forward, quick drop step",
+       how:"Start facing forward. On command, quickly drop step and backpedal explosively. Keep eyes forward, hips low. After 20 seconds, sprint forward to return.",
+       focus:"Quick transition to backpedal. Stay low. Eyes always forward.",
+       why:"Builds defensive footwork and ability to change direction quickly while maintaining vision."},
+      {name:"Approach Jumps",        sets:3,reps:"5",  tip:"Full speed 2-step — game realistic",
+       how:"Take 2-3 running steps to build momentum, gather your feet, and jump as high as possible reaching with one hand. Land softly. Reset fully between reps.",
+       focus:"Approach speed. Footwork timing. Maximum height on every attempt.",
+       why:"Simulates game-like jumping conditions. Builds the approach mechanics used in actual dunk attempts."},
+     ]},
+    {title:"VERTICAL FOCUS",  color:colors.vertical, est:"24 min",
+     warmup:"Jump rope 2 min · Ankle circles · Dynamic hip stretch",
+     cool:"Calf stretch 60s · Pigeon pose 60s/side · Child's pose",
+     drills:[
+      {name:"Max Vertical Test",     sets:1,reps:"5 jumps",tip:"Mark the wall — record your peak",
+       how:"Stand next to a wall with chalk on your hand. Jump as high as possible and mark the wall at your peak. Measure from standing reach to mark. Take 5 attempts, record your best.",
+       focus:"Maximum effort on every jump. Proper arm swing. Full extension.",
+       why:"Establishes your baseline vertical. Essential for tracking progress over time."},
+      {name:"Squat Jump Series",     sets:4,reps:"8",  tip:"No pause at bottom — continuous rhythm",
+       how:"Start in athletic stance. Squat down slightly, then immediately explode upward. Land softly and immediately go into the next rep without pausing. Keep rhythm continuous.",
+       focus:"No pause between reps. Explosive upward movement. Soft landings.",
+       why:"Trains reactive power and the ability to generate force quickly from a loaded position."},
+      {name:"Ankle Stiffness Hops",  sets:3,reps:"20", tip:"Minimal ground time — you're a spring",
+       how:"Stand with feet shoulder-width apart. Hop quickly on balls of feet with minimal knee bend. Keep ground contact time as short as possible. Stay on toes throughout.",
+       focus:"Minimal ground contact. Stay on forefoot. Quick, bouncy hops.",
+       why:"Develops ankle stiffness and tendon elasticity — your Achilles tendon acts like a spring for jumping."},
+      {name:"Single-Leg Jumps",      sets:3,reps:"6/s",tip:"Fix weak-side imbalance",
+       how:"Stand on one leg. Jump as high as possible, landing on the same leg. Keep balance throughout. Complete all reps on one leg, then switch to the other.",
+       focus:"Maximum height on each jump. Balanced landings. Equal effort on both legs.",
+       why:"Identifies and fixes strength imbalances between legs. Critical for one-footed jumping."},
+      {name:"Dunk Approach ×8",      sets:4,reps:"8",  tip:"Every rep — visualize clearing the rim",
+       how:"Take 2-3 running steps to build momentum, gather your feet, and jump as high as possible reaching with one hand toward a rim target. Land softly. Reset fully between reps.",
+       focus:"Approach speed. Footwork timing. Visualize clearing the rim on every attempt.",
+       why:"Builds the specific approach mechanics and confidence needed for actual dunk attempts."},
+     ]},
+  ];
+};
+
 const C = {
   bg:"#07070D", card:"#0E0E16", border:"#1C1C2A",
   orange:"#FF4D00", gold:"#FFB800", cyan:"#00D4FF",
   green:"#38B56A", purple:"#8B5CF6", red:"#F03A5A",
-  muted:"#8E8EA8",   // readable against dark bg without blowing out premium feel
+  muted:"#B8B8D0",   // secondary text - medium contrast, immediately readable
   dim:"#12121A",
-  label:"#6A6A84",   // for smallest metadata labels — slightly darker than muted
+  label:"#A0A0B8",   // helper text - readable but subdued
 };
 
 const RANKS = [
-  {name:"PROSPECT",   min:0,     color:"#666",    icon:"🌱"},
-  {name:"ROOKIE",     min:150,   color:"#888",    icon:"👟"},
-  {name:"VARSITY",    min:400,   color:"#AAA",    icon:"📋"},
+  {name:"PROSPECT",   min:0,     color:"#999999",    icon:"🌱"},
+  {name:"ROOKIE",     min:150,   color:"#AAAAAA",    icon:"👟"},
+  {name:"VARSITY",    min:400,   color:"#BBBBBB",    icon:"📋"},
   {name:"STARTER",    min:900,   color:"#C8A55A", icon:"⭐"},
   {name:"ALL-STAR",   min:1800,  color:"#FFB800", icon:"✨"},
   {name:"ELITE",      min:3500,  color:"#00D4FF", icon:"💎"},
@@ -32,70 +208,72 @@ const LEVELS = [
   {id:8,label:"CAN DUNK",         vert:32,icon:"👑",color:"#FFD700"},
 ];
 
-const WORKOUTS = [
-  {title:"JUMP TRAINING",  color:C.orange, est:"20 min",
-   warmup:"High knees 30s · Leg swings 10/side · Jump rope 60s",
-   cool:"Calf stretch 60s · Quad stretch 30s/side · Hip flexor 45s/side",
-   drills:[
-    {name:"Box Jumps",         sets:4,reps:"6",  tip:"Land soft — reset fully before each rep"},
-    {name:"Depth Drops",       sets:3,reps:"8",  tip:"Step off, absorb on contact — trains elasticity"},
-    {name:"Broad Jumps",       sets:3,reps:"5",  tip:"Full arm drive, maximum horizontal distance"},
-    {name:"Jump Rope Fast",    sets:3,reps:"60s",tip:"Forefoot only — minimal contact time"},
-    {name:"Approach Jumps",    sets:3,reps:"5",  tip:"2-step gather, reach max every rep"},
-   ]},
-  {title:"STRENGTH DAY",   color:C.purple, est:"22 min",
-   warmup:"Glute bridges ×15 · Monster walks ×20 · Hip circles",
-   cool:"Deep squat hold 60s · Lizard stretch 60s/side · Hamstring stretch",
-   drills:[
-    {name:"Goblet Squat",          sets:4,reps:"8",   tip:"Full depth, chest up, elbows inside knees"},
-    {name:"Bulgarian Split Squat", sets:3,reps:"8/s", tip:"Upright torso — slow down, explode up"},
-    {name:"Hip Thrust",            sets:4,reps:"12",  tip:"Full extension, hard glute squeeze"},
-    {name:"Single-Leg Calf Raise", sets:3,reps:"15/s",tip:"Full range — this is your spring"},
-    {name:"Tuck Jumps",            sets:3,reps:"8",   tip:"Drive knees to chest, land light"},
-   ]},
-  {title:"SPEED & AGILITY", color:C.gold, est:"18 min",
-   warmup:"Butt kicks 30s · High knees 30s · Lateral shuffles 20s",
-   cool:"Hip flexor 45s/side · IT band stretch · Walk 2 min",
-   drills:[
-    {name:"Sprint Starts 10yd",    sets:6,reps:"1",  tip:"Lean forward, drive your arms first"},
-    {name:"Lateral Shuffle",       sets:4,reps:"30s",tip:"Stay low — feet never cross"},
-    {name:"5-10-5 Drill",          sets:5,reps:"1",  tip:"Plant hard on every cut"},
-    {name:"Reactive Backpedal",    sets:4,reps:"20s",tip:"Eyes forward, quick drop step"},
-    {name:"Approach Jumps",        sets:3,reps:"5",  tip:"Full speed 2-step — game realistic"},
-   ]},
-  {title:"VERTICAL FOCUS",  color:C.cyan, est:"24 min",
-   warmup:"Jump rope 2 min · Ankle circles · Dynamic hip stretch",
-   cool:"Calf stretch 60s · Pigeon pose 60s/side · Child's pose",
-   drills:[
-    {name:"Max Vertical Test",     sets:1,reps:"5 jumps",tip:"Mark the wall — record your peak"},
-    {name:"Squat Jump Series",     sets:4,reps:"8",  tip:"No pause at bottom — continuous rhythm"},
-    {name:"Ankle Stiffness Hops",  sets:3,reps:"20", tip:"Minimal ground time — you're a spring"},
-    {name:"Single-Leg Jumps",      sets:3,reps:"6/s",tip:"Fix weak-side imbalance"},
-    {name:"Dunk Approach ×8",      sets:4,reps:"8",  tip:"Every rep — visualize clearing the rim"},
-   ]},
-];
-
 const PRO_WEEKS = [
   {week:"WEEK 1–2",phase:"FOUNDATION",color:C.orange,note:"Reactive strength base. Form over intensity.",drills:[
-    {name:"Altitude Drop → Jump", sets:5,reps:"5",  tip:"Drop 18\", explode instantly on contact"},
-    {name:"Single-Leg Bounds",    sets:4,reps:"6/s",tip:"Drive knee hard, cycle arms aggressively"},
-    {name:"Weighted Jump Squat",  sets:4,reps:"6",  tip:"10–15% bodyweight — speed over load"},
-    {name:"Ankle Stiffness Hops", sets:3,reps:"20", tip:"Tendons = your spring, not muscles"},
-    {name:"Hip Thrust",           sets:5,reps:"6",  tip:"Hip strength directly drives vertical"},
+    {name:"Altitude Drop → Jump", sets:5,reps:"5",  tip:"Drop 18\", explode instantly on contact",
+     how:"Stand on a box 18 inches high. Step off (don't jump). Land and immediately jump as high as possible. Reset and repeat.",
+     focus:"Absorb impact on landing. Immediate explosive jump. Minimize ground contact.",
+     why:"Trains reactive strength — your ability to use elastic energy from tendons for explosive power."},
+    {name:"Single-Leg Bounds",    sets:4,reps:"6/s",tip:"Drive knee hard, cycle arms aggressively",
+     how:"Jump forward explosively on one leg, driving the opposite knee forward. Land on the same leg and immediately bound again. Switch legs after completing reps.",
+     focus:"Maximum distance per bound. Aggressive arm swing. Explosive knee drive.",
+     why:"Builds single-leg power and coordination — essential for one-footed jumping and takeoff."},
+    {name:"Weighted Jump Squat",  sets:4,reps:"6",  tip:"10–15% bodyweight — speed over load",
+     how:"Hold dumbbells at your sides. Squat down slightly, then jump explosively. Land softly and immediately go into the next rep. Keep weight light to maintain speed.",
+     focus:"Explosive upward movement. Quick ground contact. Speed over heavy load.",
+     why:"Adds resistance to jump training to build power without sacrificing speed or technique."},
+    {name:"Ankle Stiffness Hops", sets:3,reps:"20", tip:"Tendons = your spring, not muscles",
+     how:"Stand with feet shoulder-width apart. Hop quickly on balls of feet with minimal knee bend. Keep ground contact time as short as possible. Stay on toes throughout.",
+     focus:"Minimal ground contact. Stay on forefoot. Quick, bouncy hops.",
+     why:"Develops ankle stiffness and tendon elasticity — your Achilles tendon acts like a spring for jumping."},
+    {name:"Hip Thrust",           sets:5,reps:"6",  tip:"Hip strength directly drives vertical",
+     how:"Lean upper back against a bench. Feet flat on floor, knees bent. Lower hips, then drive them up by squeezing glutes hard at the top. Hold briefly, then lower.",
+     focus:"Full hip extension. Hard glute squeeze at top. Controlled tempo.",
+     why:"Hip strength directly powers vertical jumps. Glutes are your primary jumping muscles."},
   ]},
   {week:"WEEK 3–4",phase:"OVERLOAD",color:C.cyan,note:"More volume, more load. Body is adapting — push it.",drills:[
-    {name:"Drop Jump (faster)",   sets:6,reps:"5",  tip:"Shorter contact time than Week 1"},
-    {name:"Bounding 30m",         sets:5,reps:"1",  tip:"Maximum effort every single bound"},
-    {name:"Heavy Hip Thrust",     sets:5,reps:"4",  tip:"Heavier than last week"},
-    {name:"Box Squat",            sets:5,reps:"4",  tip:"Pause on box, then explode"},
-    {name:"Nordic Curl",          sets:3,reps:"5",  tip:"Slow eccentric — hamstring protection"},
+    {name:"Drop Jump (faster)",   sets:6,reps:"5",  tip:"Shorter contact time than Week 1",
+     how:"Stand on a box 18-24 inches high. Step off (don't jump). Land and immediately jump as high as possible with minimal ground contact. Reset and repeat.",
+     focus:"Extremely fast ground contact. Immediate explosive jump. Absorb and react.",
+     why:"Progressive overload on reactive strength — trains faster tendon response for more explosive jumps."},
+    {name:"Bounding 30m",         sets:5,reps:"1",  tip:"Maximum effort every single bound",
+     how:"Run forward bounding explosively on each step, driving knees high and swinging arms aggressively. Cover 30 meters with maximum effort on every bound.",
+     focus:"Maximum distance per bound. Aggressive arm swing. Explosive knee drive.",
+     why:"Builds horizontal power that transfers to vertical jumping. Improves coordination and explosive force production."},
+    {name:"Heavy Hip Thrust",     sets:5,reps:"4",  tip:"Heavier than last week",
+     how:"Lean upper back against a bench. Feet flat on floor, knees bent. Use heavier weight than Week 1-2. Lower hips, then drive them up by squeezing glutes hard at the top.",
+     focus:"Full hip extension. Hard glute squeeze. Progressive overload.",
+     why:"Strength progression builds more force production capacity for explosive jumping."},
+    {name:"Box Squat",            sets:5,reps:"4",  tip:"Pause on box, then explode",
+     how:"Squat down until sitting on a box or bench behind you. Pause briefly, then explode up to standing. Keep chest up throughout.",
+     focus:"Pause on box to eliminate momentum. Explosive drive up. Maintain upright torso.",
+     why:"Builds explosive hip power by removing the stretch reflex — trains pure strength and force production."},
+    {name:"Nordic Curl",          sets:3,reps:"5",  tip:"Slow eccentric — hamstring protection",
+     how:"Kneel with feet anchored. Lower your upper body slowly toward the ground using hamstrings to resist. Go as low as possible, then use hands to push back up.",
+     focus:"Slow controlled descent. Resist gravity with hamstrings. Don't collapse.",
+     why:"Builds eccentric hamstring strength — critical for injury prevention and deceleration control."},
   ]},
   {week:"WEEK 5–6",phase:"PEAK",color:"#FF0040",note:"Max intensity. Dunk attempts every session. Test your numbers.",drills:[
-    {name:"Max Effort Jumps",     sets:6,reps:"3",  tip:"Full rest between — quality only"},
-    {name:"Dunk Approach Test",   sets:5,reps:"3",  tip:"Full speed, go for the rim every rep"},
-    {name:"Vertical Benchmark",   sets:1,reps:"5",  tip:"Mark the wall — compare to Week 1"},
-    {name:"40yd Sprint Test",     sets:3,reps:"1",  tip:"Time yourself — benchmark improvement"},
-    {name:"Hip Thrust Max",       sets:3,reps:"3",  tip:"New 3RM — show your strength gains"},
+    {name:"Max Effort Jumps",     sets:6,reps:"3",  tip:"Full rest between — quality only",
+     how:"Jump as high as possible with maximum effort. Take full rest (2-3 minutes) between each jump. Focus on quality over quantity. Record your best height.",
+     focus:"Maximum effort on every jump. Full recovery between reps. Perfect technique.",
+     why:"Peak phase focuses on quality and maximum output — tests your true explosive power potential."},
+    {name:"Dunk Approach Test",   sets:5,reps:"3",  tip:"Full speed, go for the rim every rep",
+     how:"Take full running approach and jump as high as possible toward a rim target. Go for the dunk on every attempt. Full rest between reps.",
+     focus:"Full approach speed. Dunk attempt on every rep. Maximum height.",
+     why:"Simulates actual dunk conditions. Builds confidence and tests your game-ready jumping ability."},
+    {name:"Vertical Benchmark",   sets:1,reps:"5",  tip:"Mark the wall — compare to Week 1",
+     how:"Stand next to a wall with chalk on your hand. Jump as high as possible and mark the wall at your peak. Measure from standing reach to mark. Compare to Week 1 baseline.",
+     focus:"Maximum effort. Proper measurement. Compare to starting point.",
+     why:"Tests your progress over the 6-week program. Shows the effectiveness of your training."},
+    {name:"40yd Sprint Test",     sets:3,reps:"1",  tip:"Time yourself — benchmark improvement",
+     how:"Sprint 40 yards at maximum effort. Have someone time you or use a timer. Take full rest between attempts. Record your best time.",
+     focus:"Maximum acceleration. Top speed. Proper sprint mechanics.",
+     why:"Tests overall explosiveness and power transfer. Improvements correlate with vertical jump gains."},
+    {name:"Hip Thrust Max",       sets:3,reps:"3",  tip:"New 3RM — show your strength gains",
+     how:"Lean upper back against a bench. Use your heaviest weight for 3 reps. Lower hips, then drive them up by squeezing glutes hard. Full rest between sets.",
+     focus:"Maximum weight for 3 reps. Perfect form. Full hip extension.",
+     why:"Tests strength gains from the program. Hip strength directly correlates with vertical jumping power."},
   ]},
 ];
 
@@ -160,15 +338,15 @@ function RankCard({r,cur,un,p,reward}) {
       <div style={{flex:1}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:cur?r.color:hov&&un?"#F0F0F0":"#D0D0D0",letterSpacing:".05em"}}>{r.name}</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#8E8EA8"}}>{r.min.toLocaleString()} XP</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{r.min.toLocaleString()} XP</span>
         </div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:cur?r.color:un?"#6A6A84":"#8E8EA8",marginTop:2,lineHeight:1.4}}>{reward}</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:cur?r.color:un?C.label:C.muted,marginTop:2,lineHeight:1.4}}>{reward}</div>
         {cur&&(
           <div style={{marginTop:6}}>
             <div style={{height:3,background:"#1A1A26",borderRadius:2,marginBottom:3}}>
               <div style={{height:3,width:`${p.pct}%`,background:r.color,borderRadius:2,transition:"width .6s"}}/>
             </div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:r.color}}>{p.pct}% to {p.next}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:r.color}}>{p.pct}% to {p.next}</div>
           </div>
         )}
       </div>
@@ -194,9 +372,55 @@ function BadgeCard({b}) {
     >
       {b.unlocked&&<div style={{position:"absolute",top:7,right:8,fontSize:10}}>✓</div>}
       <div style={{fontSize:22,marginBottom:4}}>{b.icon}</div>
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,letterSpacing:".04em",marginBottom:1}}>{b.label}</div>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#8E8EA8",marginBottom:3}}>{b.desc}</div>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:b.unlocked?"#38B56A":"#8E8EA8"}}>{b.unlocked?"✓ EARNED":b.reward}</div>
+      <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:13,letterSpacing:".04em",marginBottom:1}}>{b.label}</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginBottom:3}}>{b.desc}</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:b.unlocked?"#38B56A":C.muted}}>{b.unlocked?"✓ EARNED":b.reward}</div>
+    </div>
+  );
+}
+
+function DrillInstructions({drill, accentColor}) {
+  const [expanded, setExpanded] = useState(false);
+  if (!drill.how) return null;
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
+  return (
+    <div style={{marginTop:8}}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background:expanded ? `${accent}22` : C.dim,
+          border:`1px solid ${expanded ? accent : C.border}`,
+          borderRadius:5,
+          padding:"6px 10px",
+          fontSize:11,
+          color:expanded ? accent : C.muted,
+          fontFamily:"'DM Mono',monospace",
+          cursor:"pointer",
+          display:"flex",
+          alignItems:"center",
+          gap:6,
+          transition:"all .15s"
+        }}
+      >
+        <span>ℹ️</span>
+        <span>{expanded ? "Hide instructions" : "How to do this"}</span>
+      </button>
+      {expanded && (
+        <div style={{marginTop:8,background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"10px 12px"}}>
+          <div style={{marginBottom:8}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,letterSpacing:".08em",marginBottom:3}}>HOW</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.5}}>{drill.how}</div>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,letterSpacing:".08em",marginBottom:3}}>FOCUS</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.5}}>{drill.focus}</div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,letterSpacing:".08em",marginBottom:3}}>WHY</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.5}}>{drill.why}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -556,16 +780,16 @@ function XPBar({xp}) {
       <div style={{height:6,background:C.dim,borderRadius:3,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${p.pct}%`,background:`linear-gradient(90deg,${r.color},${r.color}BB)`,borderRadius:3,transition:"width .6s cubic-bezier(.16,1,.3,1)"}}/>
       </div>
-      {p.needed>0&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:3}}>{p.needed} XP to {p.next}</div>}
+      {p.needed>0&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:3}}>{p.needed} XP to {p.next}</div>}
     </div>
   );
 }
 
-function Tag({children,color=C.orange}) {
+function Tag({children,color}) {
   return <span style={{display:"inline-flex",alignItems:"center",gap:3,fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".1em",padding:"2px 8px",borderRadius:20,background:`${color}18`,border:`1px solid ${color}44`,color}}>{children}</span>;
 }
 
-function VertChart({logs}) {
+function VertChart({logs, accentColor}) {
   if (logs.length < 2) return null;
   const vs = logs.map(l=>l.v);
   const W=280,H=56,mn=Math.min(...vs)-.5,mx=Math.max(...vs)+.5,rng=mx-mn;
@@ -573,64 +797,67 @@ function VertChart({logs}) {
   const pts = vs.map((v,i) => ({x:(i/(vs.length-1))*W, y:H-((v-mn)/rng)*(H-10)-5}));
   const path = pts.map((p,i)=>`${i===0?"M":"L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const area = `M0,${H} ${pts.map(p=>`L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} L${W},${H} Z`;
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   return (
     <svg width={W} height={H} style={{overflow:"visible",display:"block",marginTop:4}}>
       <defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stopColor={C.orange} stopOpacity=".22"/>
-        <stop offset="100%" stopColor={C.orange} stopOpacity="0"/>
+        <stop offset="0%" stopColor={accent} stopOpacity=".22"/>
+        <stop offset="100%" stopColor={accent} stopOpacity="0"/>
       </linearGradient></defs>
       <path d={area} fill="url(#cg)"/>
-      <path d={path} fill="none" stroke={C.orange} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={path} fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       {pts.map((p,i) => vs[i]===best
         ? <g key={i}><circle cx={p.x} cy={p.y} r="5" fill={C.gold} stroke={C.card} strokeWidth="2"/><text x={p.x} y={p.y-9} textAnchor="middle" fill={C.gold} fontSize="8" fontFamily="'DM Mono',monospace">PB</text></g>
-        : i===pts.length-1 ? <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={C.orange} stroke={C.card} strokeWidth="1.5"/>
+        : i===pts.length-1 ? <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={accent} stroke={C.card} strokeWidth="1.5"/>
         : null)}
     </svg>
   );
 }
 
 // ─── MILESTONE POPUP ─────────────────────────────────────────────────────────
-function Milestone({msg,sub,onClose}) {
+function Milestone({msg,sub,onClose, accentColor}) {
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={onClose}>
-      <div className="bounceIn" style={{background:"linear-gradient(135deg,#0D0D16,#150A06)",border:`2px solid ${C.orange}`,borderRadius:12,padding:"30px 26px",textAlign:"center",maxWidth:300,width:"100%",wordWrap:"break-word",overflowWrap:"break-word"}}>
+      <div className="bounceIn" style={{background:"linear-gradient(135deg,#0D0D16,#150A06)",border:`2px solid ${accent}`,borderRadius:12,padding:"30px 26px",textAlign:"center",maxWidth:300,width:"100%",wordWrap:"break-word",overflowWrap:"break-word"}}>
         <div style={{fontSize:52,marginBottom:10}}>🎉</div>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:C.orange,letterSpacing:".05em",lineHeight:1.1,marginBottom:8,wordBreak:"break-word"}}>{msg}</div>
-        {sub&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,marginBottom:18,lineHeight:1.6,wordBreak:"break-word"}}>{sub}</div>}
-        <button onClick={onClose} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:".1em",padding:"11px 26px",borderRadius:5,minHeight:44}}>LET'S GO</button>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:accent,letterSpacing:".05em",lineHeight:1.1,marginBottom:8,wordBreak:"break-word"}}>{msg}</div>
+        {sub&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,marginBottom:18,lineHeight:1.6,wordBreak:"break-word"}}>{sub}</div>}
+        <button onClick={onClose} style={{background:accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:".1em",padding:"11px 26px",borderRadius:5,minHeight:44}}>LET'S GO</button>
       </div>
     </div>
   );
 }
 
 // ─── PRO MODAL ────────────────────────────────────────────────────────────────
-function ProModal({onClose,onUpgrade,gap,wkSess}) {
+function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:999,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div className="slideup" style={{background:"#0D0D16",border:`1px solid ${C.orange}`,borderRadius:"14px 14px 0 0",width:"100%",maxWidth:520,padding:"24px 18px 38px",maxHeight:"92vh",overflowY:"auto",position:"relative",wordWrap:"break-word",overflowWrap:"break-word"}} onClick={e=>e.stopPropagation()}>
-        <button onClick={onClose} style={{position:"absolute",top:14,right:16,background:"none",border:"none",color:"#555",fontSize:22,lineHeight:1,minWidth:44,minHeight:44}}>✕</button>
+      <div className="slideup" style={{background:"#0D0D16",border:`1px solid ${accent}`,borderRadius:"14px 14px 0 0",width:"100%",maxWidth:520,padding:"24px 18px 38px",maxHeight:"92vh",overflowY:"auto",position:"relative",wordWrap:"break-word",overflowWrap:"break-word"}} onClick={e=>e.stopPropagation()}>
+        <button onClick={onClose} style={{position:"absolute",top:14,right:16,background:"none",border:"none",color:"#B8B8D0",fontSize:22,lineHeight:1,minWidth:44,minHeight:44}}>✕</button>
 
         {/* Hook line */}
-        <div style={{background:`${C.orange}12`,border:`1px solid ${C.orange}33`,borderRadius:7,padding:"10px 13px",marginBottom:14}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:"#F0F0F0",lineHeight:1.4,wordBreak:"break-word"}}>You're already training. The difference is doing it right.</div>
+        <div style={{background:`${accent}12`,border:`1px solid ${accent}33`,borderRadius:7,padding:"10px 13px",marginBottom:14}}>
+          <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:15,color:"#F0F0F0",lineHeight:1.4,wordBreak:"break-word"}}>You're already training. The difference is doing it right.</div>
         </div>
 
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".16em",marginBottom:5}}>THE DIFFERENCE</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:accent,letterSpacing:".16em",marginBottom:5}}>THE DIFFERENCE</div>
         <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:".03em",lineHeight:1.1,marginBottom:5,wordBreak:"break-word"}}>MOST PLAYERS NEVER DUNK<br/>BECAUSE THEY TRAIN RANDOMLY.</div>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:C.orange,letterSpacing:".04em",marginBottom:14,wordBreak:"break-word"}}>THIS FIXES THAT.</div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:accent,letterSpacing:".04em",marginBottom:14,wordBreak:"break-word"}}>THIS FIXES THAT.</div>
 
         {/* Without vs With */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
           {[
             {title:"TRAINING RANDOMLY",col:C.red,items:["No structure or plan","Progress stalls fast","Plateau at same vert","No idea what to do next"]},
-            {title:"DUNK LAB PRO",col:C.orange,items:["6-week structured phases","Measurable weekly gains","Clear path to the rim","AI coach adjusts daily"]},
+            {title:"DUNK LAB PRO",col:accent,items:["6-week structured phases","Measurable weekly gains","Clear path to the rim","AI coach adjusts daily"]},
           ].map((side,si)=>(
             <div key={si} style={{background:si===0?"#0A0A12":"#0A120A",border:`1px solid ${side.col}30`,borderRadius:7,padding:"11px 12px",wordBreak:"break-word"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:side.col,letterSpacing:".1em",marginBottom:7,wordBreak:"break-word"}}>{side.title}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:side.col,letterSpacing:".1em",marginBottom:7,wordBreak:"break-word"}}>{side.title}</div>
               {side.items.map(t=>(
                 <div key={t} style={{display:"flex",alignItems:"flex-start",gap:6,marginBottom:5}}>
                   <span style={{color:si===0?C.red:C.green,fontSize:11,flexShrink:0}}>{si===0?"✕":"✓"}</span>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:si===0?C.muted:"#C8C8C8",lineHeight:1.4,wordBreak:"break-word"}}>{t}</span>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:si===0?C.muted:"#C8C8C8",lineHeight:1.4,wordBreak:"break-word"}}>{t}</span>
                 </div>
               ))}
             </div>
@@ -638,33 +865,33 @@ function ProModal({onClose,onUpgrade,gap,wkSess}) {
         </div>
 
         {/* Transformation line */}
-        <div style={{background:`${C.orange}10`,border:`1px solid ${C.orange}33`,borderRadius:7,padding:"12px 13px",marginBottom:14}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".12em",marginBottom:4}}>YOUR TRANSFORMATION</div>
+        <div style={{background:`${accent}10`,border:`1px solid ${accent}33`,borderRadius:7,padding:"12px 13px",marginBottom:14}}>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:accent,letterSpacing:".12em",marginBottom:4}}>YOUR TRANSFORMATION</div>
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".03em",lineHeight:1.3,color:"#F0F0F0"}}>
             Stay stuck{gap>0?` at ${gap}" away`:""} → or be grabbing rim in 6–8 weeks
           </div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:3}}>Avg 2–4" gained in 6 weeks with structured training vs ~0.5" random</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:3}}>Avg 2–4" gained in 6 weeks with structured training vs ~0.5" random</div>
         </div>
 
         {/* AI Coach hero feature */}
         <div style={{background:`${C.cyan}0C`,border:`1px solid ${C.cyan}33`,borderRadius:7,padding:"12px 13px",marginBottom:14}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.cyan,letterSpacing:".12em",marginBottom:5}}>MAIN FEATURE</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.cyan,letterSpacing:".12em",marginBottom:5}}>MAIN FEATURE</div>
           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
             <span style={{fontSize:22,flexShrink:0}}>🤖</span>
             <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,letterSpacing:".04em",marginBottom:3}}>Personal AI Dunk Coach</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.55}}>Real-time feedback based on your progress, workouts, and stats. Tells you exactly what to fix and what to do next. Unlimited questions.</div>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:15,letterSpacing:".04em",marginBottom:3}}>Personal AI Dunk Coach</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.55}}>Real-time feedback based on your progress, workouts, and stats. Tells you exactly what to fix and what to do next. Unlimited questions.</div>
             </div>
           </div>
         </div>
 
         {/* Phase timeline */}
         <div style={{display:"flex",gap:0,marginBottom:14}}>
-          {[{w:"WK 1–2",p:"Foundation",c:C.orange},{w:"WK 3–4",p:"Overload",c:C.cyan},{w:"WK 5–6",p:"Peak",c:"#FF0040"}].map((ph,i)=>(
+          {[{w:"WK 1–2",p:"Foundation",c:accent},{w:"WK 3–4",p:"Overload",c:C.cyan},{w:"WK 5–6",p:"Peak",c:"#FF0040"}].map((ph,i)=>(
             <div key={ph.w} style={{display:"flex",alignItems:"center",flex:1}}>
               <div style={{flex:1,background:`${ph.c}14`,border:`1px solid ${ph.c}40`,borderRadius:5,padding:"8px 5px",textAlign:"center"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:ph.c,letterSpacing:".06em"}}>{ph.w}</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:12,marginTop:1}}>{ph.p}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:ph.c,letterSpacing:".06em"}}>{ph.w}</div>
+                <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:12,marginTop:1}}>{ph.p}</div>
               </div>
               {i<2&&<div style={{width:4,height:2,background:C.muted,flexShrink:0}}/>}
             </div>
@@ -683,20 +910,20 @@ function ProModal({onClose,onUpgrade,gap,wkSess}) {
           ].map(([ico,t,d])=>(
             <div key={t} style={{background:C.dim,borderRadius:6,padding:"9px 10px"}}>
               <div style={{fontSize:15,marginBottom:3}}>{ico}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:12,letterSpacing:".03em",marginBottom:1}}>{t}</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,lineHeight:1.4}}>{d}</div>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:12,letterSpacing:".03em",marginBottom:1}}>{t}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,lineHeight:1.4}}>{d}</div>
             </div>
           ))}
         </div>
 
         {/* Urgency line */}
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,textAlign:"center",marginBottom:10}}>Every week you wait = slower progress.</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,textAlign:"center",marginBottom:10}}>Every week you wait = slower progress.</div>
 
         {/* Social proof */}
         <div style={{display:"flex",gap:8,marginBottom:12}}>
           {[["Used by players training for their first dunk","#1E1E2A"],["Avg users gain 2–4\" in 6 weeks","#0A130D"]].map(([t,bg])=>(
             <div key={t} style={{flex:1,background:bg,border:`1px solid ${C.border}`,borderRadius:5,padding:"7px 9px",textAlign:"center"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,lineHeight:1.5}}>{t}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,lineHeight:1.5}}>{t}</div>
             </div>
           ))}
         </div>
@@ -704,7 +931,7 @@ function ProModal({onClose,onUpgrade,gap,wkSess}) {
         {/* MOST POPULAR badge + CTA */}
         <div style={{position:"relative"}}>
           <div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:C.gold,color:"#000",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".12em",padding:"2px 12px",borderRadius:20,whiteSpace:"nowrap"}}>MOST POPULAR</div>
-          <button onClick={onUpgrade} className="press" style={{width:"100%",background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"18px 0 16px",borderRadius:7,display:"block",marginBottom:7}}>
+          <button onClick={onUpgrade} className="press" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"18px 0 16px",borderRadius:7,display:"block",marginBottom:7}}>
             START TRAINING SMARTER — $4.99/MO
           </button>
         </div>
@@ -733,43 +960,43 @@ function DunkCalc({onStart}) {
       {!res ? (
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:16}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".16em",marginBottom:12}}>CAN YOU DUNK? — 10 SECONDS</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:theme.accent,letterSpacing:".16em",marginBottom:12}}>CAN YOU DUNK? — 10 SECONDS</div>
             <div style={{display:"flex",gap:10}}>
               <div style={{flex:1}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
-                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?C.orange:C.border}}/>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginTop:3}}>5'5"=65 · 5'10"=70 · 6'=72</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
+                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?theme.accent:C.border}}/>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>5'5"=65 · 5'10"=70 · 6'=72</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>VERTICAL (inches)</div>
-                <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?C.orange:C.border}}/>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>VERTICAL (inches)</div>
+                <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?theme.accent:C.border}}/>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
               </div>
             </div>
           </div>
-          <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?C.orange:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
+          <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?theme.accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
         </div>
       ) : (
         <div className="pop" style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{background:`linear-gradient(160deg,#0D0D16,${res.g===0?"#0A160D":"#150A06"})`,border:`1px solid ${res.g===0?C.green:C.orange}`,borderRadius:10,padding:"20px 16px",textAlign:"center"}}>
+          <div style={{background:`linear-gradient(160deg,#0D0D16,${res.g===0?"#0A160D":"#150A06"})`,border:`1px solid ${res.g===0?C.green:theme.accent}`,borderRadius:10,padding:"20px 16px",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:8}}>{res.g===0?"👑":res.lv.icon}</div>
             {res.g===0 ? (
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,color:C.green}}>YOU CAN DUNK!</div>
             ) : (
               <>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:".14em",marginBottom:4}}>YOU ARE</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:56,color:C.orange,letterSpacing:".04em",lineHeight:1}}>{res.g}"</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:"#CCC",letterSpacing:".06em",marginBottom:12}}>FROM DUNKING</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:4}}>YOU ARE</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:56,color:theme.accent,letterSpacing:".04em",lineHeight:1}}>{res.g}"</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:"#EEEEEE",letterSpacing:".06em",marginBottom:12}}>FROM DUNKING</div>
                 <div style={{height:8,background:C.dim,borderRadius:4,marginBottom:5}}>
-                  <div style={{height:8,width:`${res.pct}%`,background:`linear-gradient(90deg,${C.orange},#FF8000)`,borderRadius:4}}/>
+                  <div style={{height:8,width:`${res.pct}%`,background:`linear-gradient(90deg,${theme.accent},#FF8000)`,borderRadius:4}}/>
                 </div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>{res.pct}% there · ~{res.wk} weeks with consistent training</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>{res.pct}% there · ~{res.wk} weeks with consistent training</div>
               </>
             )}
           </div>
           {res.g>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
               {LEVELS.filter(l=>l.vert>res.v).slice(0,3).map((lv,i)=>{
                 // Height-adjusted vertical needed — same formula as Step 2
                 const reach = Math.round(res.h * 1.335);
@@ -779,20 +1006,20 @@ function DunkCalc({onStart}) {
                   <div key={lv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<2?`1px solid ${C.dim}`:"none"}}>
                     <span style={{fontSize:16,minWidth:20}}>{lv.icon}</span>
                     <div style={{flex:1}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,color:i===0?lv.color:"#F0F0F0"}}>{lv.label}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>~{vertNeeded}" vertical for your height</div>
+                      <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:14,color:i===0?lv.color:"#F0F0F0"}}>{lv.label}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>~{vertNeeded}" vertical for your height</div>
                     </div>
-                    {i===0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:lv.color}}>NEXT ↑</span>}
+                    {i===0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:lv.color}}>NEXT ↑</span>}
                   </div>
                 );
               })}
             </div>
           )}
-          <button onClick={()=>onStart(res)} className="glowbtn" style={{width:"100%",background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <button onClick={()=>onStart(res)} className="glowbtn" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             START MY PROGRAM →
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.7}}>FREE · 30 SECONDS</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#000000"}}>FREE · 30 SECONDS</span>
           </button>
-          <button onClick={()=>setRes(null)} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,fontFamily:"'DM Mono',monospace",fontSize:10,padding:"10px 0",borderRadius:6,width:"100%"}}>← Recalculate</button>
+          <button onClick={()=>setRes(null)} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,fontFamily:"'DM Mono',monospace",fontSize:13,padding:"10px 0",borderRadius:6,width:"100%"}}>← Recalculate</button>
         </div>
       )}
     </div>
@@ -811,51 +1038,51 @@ function Onboarding({calcRes,onComplete}) {
         {step===0&&(
           <div className="fade" style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:4}}>STEP 1 OF 2</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:4}}>STEP 1 OF 2</div>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:".04em",lineHeight:1,marginBottom:4}}>BUILD YOUR PLAN</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Personalizes your workouts and dunk timeline.</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Personalizes your workouts and dunk timeline.</div>
             </div>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:14,display:"flex",flexDirection:"column",gap:10}}>
               <div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>YOUR NAME</div>
-                <input type="text" placeholder="ENTER NAME" value={d.name} onChange={e=>setD(x=>({...x,name:e.target.value.toUpperCase()}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.name?C.orange:C.border}}/>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>YOUR NAME</div>
+                <input type="text" placeholder="ENTER NAME" value={d.name} onChange={e=>setD(x=>({...x,name:e.target.value.toUpperCase()}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.name?theme.accent:C.border}}/>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>AGE</div>
-                  <input type="number" min="10" max="50" placeholder="—" value={d.age} onChange={e=>setD(x=>({...x,age:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.age?C.orange:C.border}}/>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>AGE</div>
+                  <input type="number" min="10" max="50" placeholder="—" value={d.age} onChange={e=>setD(x=>({...x,age:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.age?theme.accent:C.border}}/>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
-                  <input type="number" min="48" max="96" placeholder="66" value={d.height} onChange={e=>setD(x=>({...x,height:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.height?C.orange:C.border}}/>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
+                  <input type="number" min="48" max="96" placeholder="66" value={d.height} onChange={e=>setD(x=>({...x,height:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.height?theme.accent:C.border}}/>
                 </div>
               </div>
               <div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:5}}>EXPERIENCE</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>EXPERIENCE</div>
                 <div style={{display:"flex",gap:6}}>
                   {["beginner","intermediate","advanced"].map(s=>(
-                    <button key={s} onClick={()=>setD(x=>({...x,skill:s}))} style={{flex:1,background:d.skill===s?`${C.orange}20`:"#0C0C14",border:`1px solid ${d.skill===s?C.orange:C.border}`,color:d.skill===s?C.orange:"#555",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".04em",padding:"9px 0",borderRadius:5,textTransform:"capitalize"}}>{s}</button>
+                    <button key={s} onClick={()=>setD(x=>({...x,skill:s}))} style={{flex:1,background:d.skill===s?`${theme.accent}20`:"#0C0C14",border:`1px solid ${d.skill===s?theme.accent:C.border}`,color:d.skill===s?theme.accent:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".04em",padding:"9px 0",borderRadius:5,textTransform:"capitalize"}}>{s}</button>
                   ))}
                 </div>
               </div>
             </div>
-            <button onClick={()=>setStep(1)} disabled={!ok0} style={{width:"100%",background:ok0?C.orange:"#111",color:ok0?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,opacity:ok0?1:.5}}>NEXT →</button>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,textAlign:"center"}}>30 seconds · no account needed</div>
+            <button onClick={()=>setStep(1)} disabled={!ok0} style={{width:"100%",background:ok0?theme.accent:"#111",color:ok0?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,opacity:ok0?1:.5}}>NEXT →</button>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,textAlign:"center"}}>30 seconds · no account needed</div>
           </div>
         )}
         {step===1&&(
           <div className="fade" style={{display:"flex",flexDirection:"column",gap:12}}>
-            <button onClick={()=>setStep(0)} style={{background:"none",border:"none",color:C.muted,fontFamily:"'DM Mono',monospace",fontSize:10,padding:0,textAlign:"left",marginBottom:2}}>← Back</button>
+            <button onClick={()=>setStep(0)} style={{background:"none",border:"none",color:C.muted,fontFamily:"'DM Mono',monospace",fontSize:13,padding:0,textAlign:"left",marginBottom:2}}>← Back</button>
             <div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:4}}>STEP 2 OF 2</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:4}}>STEP 2 OF 2</div>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:".04em",lineHeight:1.1,marginBottom:4}}>WHERE ARE YOU NOW?</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Honest answer = better workouts.</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Honest answer = better workouts.</div>
               {parseFloat(d.height) > 0 ? (
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.orange,marginTop:5}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:theme.accent,marginTop:5}}>
                   Standing reach at {d.height}": ~{Math.round(parseFloat(d.height)*1.335)}" — verticals calculated for your height
                 </div>
               ) : (
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:5}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:5}}>
                   ← Go back and enter your height for personalized estimates
                 </div>
               )}
@@ -893,7 +1120,7 @@ function Onboarding({calcRes,onComplete}) {
                       <button key={lv.id} onClick={()=>setD(x=>({...x,level:lv.id}))} style={{background:d.level===lv.id?`${lv.color}18`:C.card,border:`1px solid ${d.level===lv.id?lv.color:C.border}`,borderRadius:6,padding:"11px 13px",display:"flex",alignItems:"center",gap:12,transition:"all .15s",width:"100%"}}>
                         <span style={{fontSize:18,minWidth:24}}>{lv.icon}</span>
                         <div style={{flex:1,textAlign:"left"}}>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,color:d.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
+                          <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:14,color:d.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
                           <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{vertNeededStr}</div>
                         </div>
                         {d.level===lv.id&&<span style={{color:lv.color,fontSize:14}}>✓</span>}
@@ -903,7 +1130,7 @@ function Onboarding({calcRes,onComplete}) {
                 </div>
               );
             })()}
-            <button onClick={()=>onComplete(d)} className="glowbtn" style={{width:"100%",background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:19,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <button onClick={()=>onComplete(d)} className="glowbtn" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:19,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
               BUILD MY PROGRAM
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.7}}>YOUR FIRST WORKOUT IS READY</span>
             </button>
@@ -955,12 +1182,30 @@ const RECOVERY_DAYS = [
   {title:"MOBILITY & STRETCH",  color:"#00D4FF", est:"20 min",
    note:"Active recovery — keeps tendons healthy and reduces injury risk.",
    drills:[
-    {name:"Hip Flexor Stretch",    sets:2,reps:"60s/side",tip:"Hold deep — hip flexors limit jump height"},
-    {name:"Calf & Achilles Stretch",sets:2,reps:"60s/side",tip:"Your tendons store elastic energy — keep them supple"},
-    {name:"Pigeon Pose",           sets:2,reps:"90s/side",tip:"Opens hips — critical for full jump extension"},
-    {name:"Foam Roll — Quads",     sets:1,reps:"2 min",  tip:"Slow, pause on tight spots"},
-    {name:"Foam Roll — Calves",    sets:1,reps:"2 min",  tip:"Especially the Achilles insertion"},
-    {name:"Dead Bug — Core",       sets:3,reps:"10",     tip:"Braced core stabilizes every landing"},
+    {name:"Hip Flexor Stretch",    sets:2,reps:"60s/side",tip:"Hold deep — hip flexors limit jump height",
+     how:"Kneel on one knee with other foot forward. Lean forward into the stretch, feeling it in the front of the hip of the kneeling leg. Hold for 60 seconds, then switch sides.",
+     focus:"Deep stretch in hip flexor. Upright torso. Breathe through discomfort.",
+     why:"Tight hip flexors limit jump height by restricting hip extension. Regular stretching improves range of motion and power output."},
+    {name:"Calf & Achilles Stretch",sets:2,reps:"60s/side",tip:"Your tendons store elastic energy — keep them supple",
+     how:"Place hands against wall. Step one foot back, keeping heel on ground. Lean forward to stretch calf and Achilles. Hold for 60 seconds, then switch legs.",
+     focus:"Heel stays on ground. Straight back leg. Deep stretch in calf.",
+     why:"Achilles tendon stores elastic energy for jumping. Keeping it supple prevents injury and maintains power output."},
+    {name:"Pigeon Pose",           sets:2,reps:"90s/side",tip:"Opens hips — critical for full jump extension",
+     how:"Start in a tabletop position. Bring one knee forward behind your wrist, extending the other leg back. Lower hips toward ground. Hold for 90 seconds, then switch sides.",
+     focus:"Hips sinking toward ground. Square hips forward. Breathe deeply.",
+     why:"Opens tight hips from jumping and squatting. Hip mobility is critical for full jump extension and injury prevention."},
+    {name:"Foam Roll — Quads",     sets:1,reps:"2 min",  tip:"Slow, pause on tight spots",
+     how:"Lie face down with foam roller under thighs. Roll slowly from hips to knees. Pause for 20-30 seconds on any tight spots. Avoid rolling directly on knees.",
+     focus:"Slow rolling. Pause on tight spots. Breathe through tension.",
+     why:"Releases quad tension from jumping and squatting. Improves muscle recovery and reduces injury risk."},
+    {name:"Foam Roll — Calves",    sets:1,reps:"2 min",  tip:"Especially the Achilles insertion",
+     how:"Sit with foam roller under one calf. Cross other leg over for pressure. Roll slowly from ankle to knee. Spend extra time on Achilles insertion. Switch legs.",
+     focus:"Slow rolling. Focus on Achilles area. Don't roll over ankle bone.",
+     why:"Calves and Achilles take massive load from jumping. Rolling releases tension and maintains tendon health."},
+    {name:"Dead Bug — Core",       sets:3,reps:"10",     tip:"Braced core stabilizes every landing",
+     how:"Lie on back with arms extended toward ceiling and legs in tabletop position. Slowly lower opposite arm and leg toward ground, keeping lower back pressed to floor. Return and switch sides.",
+     focus:"Lower back stays flat. Controlled movement. Opposite arm and leg.",
+     why:"Core stability is essential for landing mechanics. A braced core protects your spine and transfers force efficiently."},
    ]},
 ];
 
@@ -968,54 +1213,144 @@ const RECOVERY_DAYS = [
 const GYM_SPLITS = [
   {phase:"FOUNDATION (WK 1–2)", color:C.orange,
    push:{name:"PUSH — Chest/Shoulders/Triceps", drills:[
-    {name:"DB Bench Press",      sets:3,reps:"10",  tip:"Controlled — build base strength"},
-    {name:"DB Shoulder Press",   sets:3,reps:"10",  tip:"Overhead strength supports jump posture"},
-    {name:"Lateral Raises",      sets:3,reps:"12",  tip:"Shoulder stability for landing control"},
-    {name:"Tricep Pushdown",     sets:3,reps:"12",  tip:"Lockout strength — foundational"},
+    {name:"DB Bench Press",      sets:3,reps:"10",  tip:"Controlled — build base strength",
+     how:"Lie on bench holding dumbbells at chest level. Lower weights to chest with control. Press up explosively. Keep feet flat and back pressed to bench.",
+     focus:"Controlled eccentric. Explosive press. Full range of motion.",
+     why:"Builds chest and tricep strength — foundational for upper body power and arm swing in jumping."},
+    {name:"DB Shoulder Press",   sets:3,reps:"10",  tip:"Overhead strength supports jump posture",
+     how:"Sit or stand holding dumbbells at shoulder height. Press weights overhead until arms are fully extended. Lower with control. Keep core tight.",
+     focus:"Full overhead extension. Controlled tempo. Stable core.",
+     why:"Overhead pressing strength supports proper jump posture and arm mechanics for maximum height."},
+    {name:"Lateral Raises",      sets:3,reps:"12",  tip:"Shoulder stability for landing control",
+     how:"Hold dumbbells at sides. Raise arms out to sides until parallel with floor. Lower with control. Keep slight bend in elbows throughout.",
+     focus:"Raise to shoulder height. Controlled tempo. Don't swing or use momentum.",
+     why:"Shoulder stability improves landing control and reduces injury risk during jumps."},
+    {name:"Tricep Pushdown",     sets:3,reps:"12",  tip:"Lockout strength — foundational",
+     how:"Stand at cable machine holding bar with elbows tucked at sides. Push bar down until arms fully extended. Slowly return to start. Keep elbows stationary.",
+     focus:"Full extension at bottom. Elbows stay pinned to sides. Controlled eccentric.",
+     why:"Tricep strength powers arm swing — critical for generating momentum in jump takeoff."},
    ]},
    pull:{name:"PULL — Back/Biceps", drills:[
-    {name:"DB Row",              sets:3,reps:"10",  tip:"Back strength = upright torso on landings"},
-    {name:"Face Pull",           sets:3,reps:"15",  tip:"Shoulder health — don't skip this"},
-    {name:"Bicep Curl",          sets:3,reps:"12",  tip:"Elbow health and upper arm balance"},
+    {name:"DB Row",              sets:3,reps:"10",  tip:"Back strength = upright torso on landings",
+     how:"Bend over with flat back, holding dumbbells. Pull weights to hips by driving elbows back. Squeeze shoulder blades at top. Lower with control.",
+     focus:"Flat back throughout. Drive elbows back. Squeeze shoulder blades.",
+     why:"Back strength maintains upright torso during landings — critical for jump mechanics and injury prevention."},
+    {name:"Face Pull",           sets:3,reps:"15",  tip:"Shoulder health — don't skip this",
+     how:"Set cable at face height with rope attachment. Pull rope toward face, spreading hands apart at end. Squeeze rear delts. Return slowly.",
+     focus:"Pull to face level. Spread hands at end. Controlled eccentric.",
+     why:"Shoulder health exercise — prevents imbalances from pressing and protects shoulders during jumping."},
+    {name:"Bicep Curl",          sets:3,reps:"12",  tip:"Elbow health and upper arm balance",
+     how:"Hold dumbbells at sides with palms facing forward. Curl weights to shoulders by bending elbows. Lower with control. Keep elbows pinned to sides.",
+     focus:"Full range of motion. Elbows stay at sides. No swinging.",
+     why:"Balances elbow joint health and upper arm strength — supports pulling mechanics and arm swing."},
    ]},
    legs:{name:"LEGS — Lower Body", drills:[
-    {name:"Goblet Squat",        sets:4,reps:"10",  tip:"Foundation phase — full depth, controlled"},
-    {name:"Romanian Deadlift",   sets:3,reps:"10",  tip:"Hamstring strength prevents injury"},
-    {name:"Calf Raises",         sets:4,reps:"20",  tip:"Your spring — do this every legs day"},
+    {name:"Goblet Squat",        sets:4,reps:"10",  tip:"Foundation phase — full depth, controlled",
+     how:"Hold a dumbbell at chest height with both hands. Squat down until thighs are parallel to floor. Keep chest up and elbows inside knees. Drive through heels to stand.",
+     focus:"Full depth squat. Upright torso. Heels driving into ground.",
+     why:"Builds leg strength and squat pattern. Essential foundation for explosive jumping power."},
+    {name:"Romanian Deadlift",   sets:3,reps:"10",  tip:"Hamstring strength prevents injury",
+     how:"Hold dumbbells in front of thighs with slight knee bend. Hinge at hips, lowering weights toward floor while keeping back flat. Feel hamstrings stretch, then drive hips forward to stand.",
+     focus:"Hinge at hips, not waist. Flat back. Feel hamstrings working.",
+     why:"Hamstring strength is critical for knee health and deceleration — prevents jumping injuries."},
+    {name:"Calf Raises",         sets:4,reps:"20",  tip:"Your spring — do this every legs day",
+     how:"Stand on edge of a step. Lower heels below step, then rise up onto toes as high as possible. Hold at top, then lower slowly. Can be done with or without weight.",
+     focus:"Full range of motion. Slow controlled eccentric. Hold at peak contraction.",
+     why:"Achilles tendon is your spring. Strong calves = more elastic energy for higher jumps."},
    ]}},
   {phase:"OVERLOAD (WK 3–4)", color:C.cyan,
    push:{name:"PUSH — Heavier", drills:[
-    {name:"DB Bench Press",      sets:4,reps:"8",   tip:"Increase weight from Week 1–2"},
-    {name:"DB Shoulder Press",   sets:4,reps:"8",   tip:"Progressive overload — heavier now"},
-    {name:"Cable Fly",           sets:3,reps:"12",  tip:"Chest activation for push power"},
-    {name:"Overhead Tricep Ext", sets:3,reps:"10",  tip:"Loaded stretch for strength gains"},
+    {name:"DB Bench Press",      sets:4,reps:"8",   tip:"Increase weight from Week 1–2",
+     how:"Lie on bench holding dumbbells at chest level. Use heavier weight than Week 1-2. Lower weights to chest with control. Press up explosively.",
+     focus:"Heavier load. Controlled eccentric. Explosive press.",
+     why:"Progressive overload builds more chest and tricep strength for increased upper body power."},
+    {name:"DB Shoulder Press",   sets:4,reps:"8",   tip:"Progressive overload — heavier now",
+     how:"Sit or stand holding dumbbells at shoulder height. Use heavier weight than Week 1-2. Press weights overhead until arms fully extended. Lower with control.",
+     focus:"Heavier overhead load. Full extension. Stable core.",
+     why:"Stronger shoulders support better jump posture and more powerful arm swing mechanics."},
+    {name:"Cable Fly",           sets:3,reps:"12",  tip:"Chest activation for push power",
+     how:"Set cables at chest height. Stand in middle, holding handles with arms extended. Bring hands together in front of chest, squeezing pecs. Return slowly with control.",
+     focus:"Full range of motion. Squeeze chest at end. Controlled eccentric.",
+     why:"Chest isolation exercise improves push power and contributes to arm swing explosiveness."},
+    {name:"Overhead Tricep Ext", sets:3,reps:"10",  tip:"Loaded stretch for strength gains",
+     how:"Hold a dumbbell with both hands overhead. Lower weight behind head by bending elbows. Extend arms back overhead to start. Keep elbows pointing forward.",
+     focus:"Loaded stretch position. Full extension. Control throughout.",
+     why:"Loaded tricep stretch builds strength through full range — improves arm lockout power."},
    ]},
    pull:{name:"PULL — Heavier", drills:[
-    {name:"Weighted DB Row",     sets:4,reps:"8",   tip:"Heavier than last week — track it"},
-    {name:"Lat Pulldown",        sets:3,reps:"10",  tip:"Lat strength supports explosive jumps"},
-    {name:"Hammer Curl",         sets:3,reps:"10",  tip:"Brachialis — underrated for pulling power"},
+    {name:"Weighted DB Row",     sets:4,reps:"8",   tip:"Heavier than last week — track it",
+     how:"Bend over with flat back, holding heavier dumbbells than Week 1-2. Pull weights to hips by driving elbows back. Squeeze shoulder blades at top. Lower with control.",
+     focus:"Heavier load. Flat back throughout. Drive elbows back.",
+     why:"Stronger back maintains better posture during landings and supports more powerful arm swing."},
+    {name:"Lat Pulldown",        sets:3,reps:"10",  tip:"Lat strength supports explosive jumps",
+     how:"Sit at lat pulldown machine. Grip bar wider than shoulders. Pull bar down to upper chest by driving elbows down. Squeeze lats at bottom. Return with control.",
+     focus:"Pull to upper chest. Drive elbows down. Squeeze lats.",
+     why:"Lat strength stabilizes shoulders and torso during jumping — improves force transfer and control."},
+    {name:"Hammer Curl",         sets:3,reps:"10",  tip:"Brachialis — underrated for pulling power",
+     how:"Hold dumbbells at sides with neutral grip (palms facing each other). Curl weights to shoulders by bending elbows. Lower with control. Keep elbows pinned to sides.",
+     focus:"Neutral grip throughout. Elbows stay at sides. Full range.",
+     why:"Targets brachialis muscle — builds forearm and elbow strength for better pulling mechanics."},
    ]},
    legs:{name:"LEGS — Peak Load", drills:[
-    {name:"Front Squat",         sets:4,reps:"6",   tip:"Upright torso builds jump-specific strength"},
-    {name:"Nordic Curl",         sets:3,reps:"5",   tip:"Slow eccentric — hamstring armor"},
-    {name:"Single-Leg Press",    sets:3,reps:"8/s", tip:"Fixes imbalances that limit vertical"},
-    {name:"Calf Raises — Heavy", sets:5,reps:"15",  tip:"Overload your spring"},
+    {name:"Front Squat",         sets:4,reps:"6",   tip:"Upright torso builds jump-specific strength",
+     how:"Hold barbell across front shoulders. Squat down until thighs are parallel. Keep torso upright throughout. Drive through heels to stand.",
+     focus:"Upright torso. Full depth. Heels driving into ground.",
+     why:"Front squat builds jump-specific leg strength with upright posture — directly transfers to vertical jumping."},
+    {name:"Nordic Curl",         sets:3,reps:"5",   tip:"Slow eccentric — hamstring armor",
+     how:"Kneel with feet anchored. Lower your upper body slowly toward the ground using hamstrings to resist. Go as low as possible, then use hands to push back up.",
+     focus:"Slow controlled descent. Resist gravity with hamstrings. Don't collapse.",
+     why:"Builds eccentric hamstring strength — critical for injury prevention and deceleration control."},
+    {name:"Single-Leg Press",    sets:3,reps:"8/s", tip:"Fixes imbalances that limit vertical",
+     how:"Sit in leg press machine. Place one foot on platform. Lower weight until knee is bent, then press up to full extension. Switch legs after completing reps.",
+     focus:"Full range of motion. Equal effort on both legs. Controlled tempo.",
+     why:"Single-leg work fixes imbalances between legs — critical for balanced jumping and injury prevention."},
+    {name:"Calf Raises — Heavy", sets:5,reps:"15",  tip:"Overload your spring",
+     how:"Stand on edge of a step holding heavy dumbbells. Lower heels below step, then rise up onto toes as high as possible. Hold at top, then lower slowly.",
+     focus:"Heavy load. Full range of motion. Slow controlled eccentric.",
+     why:"Overloading calves builds more tendon stiffness — increases elastic energy for higher jumps."},
    ]}},
   {phase:"PEAK (WK 5–6)", color:"#FF0040",
    push:{name:"PUSH — Power Focus", drills:[
-    {name:"Explosive DB Press",  sets:4,reps:"6",   tip:"Accelerate through the movement"},
-    {name:"Med Ball Chest Pass", sets:4,reps:"8",   tip:"Power transfer — explosive upper body"},
-    {name:"Band Pushdown",       sets:3,reps:"15",  tip:"Reactive — fast concentric"},
+    {name:"Explosive DB Press",  sets:4,reps:"6",   tip:"Accelerate through the movement",
+     how:"Lie on bench holding dumbbells at chest level. Press weights explosively, accelerating through entire movement. Lower with control. Focus on speed.",
+     focus:"Explosive pressing speed. Accelerate through lockout. Controlled eccentric.",
+     why:"Power-focused pressing builds explosive upper body strength for more powerful arm swing."},
+    {name:"Med Ball Chest Pass", sets:4,reps:"8",   tip:"Power transfer — explosive upper body",
+     how:"Stand holding medicine ball at chest. Push ball explosively forward as if passing. Have partner catch or throw against wall. Reset quickly between reps.",
+     focus:"Maximum throwing speed. Explosive push. Quick reset.",
+     why:"Medicine ball training develops explosive upper body power that transfers to jumping mechanics."},
+    {name:"Band Pushdown",       sets:3,reps:"15",  tip:"Reactive — fast concentric",
+     how:"Attach resistance band overhead. Hold bar with elbows tucked. Push down explosively, letting band snap back up. Focus on speed, not load.",
+     focus:"Fast concentric speed. Reactive movement. Quick turnaround.",
+     why:"Band training develops reactive power and fast twitch muscle fibers for explosive movements."},
    ]},
    pull:{name:"PULL — Power Focus", drills:[
-    {name:"Explosive DB Row",    sets:4,reps:"6",   tip:"Row with intent — power, not grind"},
-    {name:"Chin-Up",             sets:3,reps:"max", tip:"Bodyweight pulling power"},
+    {name:"Explosive DB Row",    sets:4,reps:"6",   tip:"Row with intent — power, not grind",
+     how:"Bend over with flat back, holding dumbbells. Row weights explosively to hips, driving elbows back with maximum speed. Lower with control.",
+     focus:"Explosive rowing speed. Drive elbows back hard. Controlled eccentric.",
+     why:"Power-focused rowing builds explosive back strength for more forceful arm swing mechanics."},
+    {name:"Chin-Up",             sets:3,reps:"max", tip:"Bodyweight pulling power",
+     how:"Hang from bar with underhand grip. Pull yourself up until chin clears bar. Lower with control. Go for maximum reps each set.",
+     focus:"Full range of motion. Controlled tempo. Maximum effort.",
+     why:"Bodyweight pulling power builds back and bicep strength — supports arm swing and upper body explosiveness."},
    ]},
    legs:{name:"LEGS — Explosive", drills:[
-    {name:"Jump Squat",          sets:5,reps:"5",   tip:"Max intent on every rep — your vertical lives here"},
-    {name:"Trap Bar Deadlift",   sets:5,reps:"4",   tip:"Most direct vertical carryover of any lift"},
-    {name:"Depth Jump",          sets:4,reps:"5",   tip:"Pair with leg day for maximum overload"},
-    {name:"Calf Raise — Max",    sets:5,reps:"12",  tip:"Last week — give everything"},
+    {name:"Jump Squat",          sets:5,reps:"5",   tip:"Max intent on every rep — your vertical lives here",
+     how:"Stand with feet shoulder-width apart. Squat down slightly, then jump as high as possible with maximum intent. Land softly and immediately reset. Go for max height every rep.",
+     focus:"Maximum effort on every jump. Explosive upward movement. Soft landings.",
+     why:"Jump squats directly train vertical jumping power — this is where your vertical gains happen."},
+    {name:"Trap Bar Deadlift",   sets:5,reps:"4",   tip:"Most direct vertical carryover of any lift",
+     how:"Stand inside trap bar with feet shoulder-width apart. Grip handles, hinge at hips, then explosively stand up driving through heels. Lower with control.",
+     focus:"Explosive hip extension. Drive through heels. Full hip extension at top.",
+     why:"Trap bar deadlift has the most direct carryover to vertical jumping of any lift — builds explosive hip power."},
+    {name:"Depth Jump",          sets:4,reps:"5",   tip:"Pair with leg day for maximum overload",
+     how:"Stand on a box 18-24 inches high. Step off (don't jump). Land on both feet and immediately jump as high as possible. Reset and repeat.",
+     focus:"Absorb impact on landing. Immediate explosive jump. Minimize ground contact.",
+     why:"Advanced plyometric that trains reactive strength — maximum overload for tendon elasticity."},
+    {name:"Calf Raise — Max",    sets:5,reps:"12",  tip:"Last week — give everything",
+     how:"Stand on edge of a step with maximum weight you can handle. Lower heels below step, then rise up onto toes as high as possible. Hold at top, then lower slowly.",
+     focus:"Maximum weight. Full range of motion. Slow controlled eccentric.",
+     why:"Peak phase calf training maximizes tendon stiffness — final push for maximum elastic energy."},
    ]}},
 ];
 
@@ -1038,6 +1373,23 @@ export default function App() {
   const [calcRes,setCalcRes]=useState(null);
   const [view,setView]=useState("home");
   const [tSub,setTSub]=useState("vert");
+  // Theme system
+  const [accentColor,setAccentColor]=useState(()=>localStorage.getItem("dl_theme")||"orange");
+  
+  // Save theme preference when changed
+  useEffect(() => {
+    localStorage.setItem("dl_theme", accentColor);
+  }, [accentColor]);
+  
+  // Dynamic theme colors
+  const theme = useMemo(() => ({
+    ...C,
+    accent: ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange,
+  }), [accentColor]);
+  
+  // Dynamic WORKOUTS array based on theme
+  const WORKOUTS = useMemo(() => getWorkouts(accentColor), [accentColor]);
+  
   // ── EXPLOIT FIX: drillsDone is persisted in localStorage keyed by date+workoutDay ──
   const [drillsDone,setDrillsDone]=useState(()=>{
     try {
@@ -1455,45 +1807,45 @@ export default function App() {
 
       {/* FIRST SESSION WELCOME — only shown before any session */}
       {D.sessions === 0 && (
-        <div className="pop" style={{background:`linear-gradient(135deg,${C.orange}12,${C.gold}08)`,border:`1px solid ${C.orange}44`,borderRadius:9,padding:"13px 15px",marginBottom:10}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:C.orange,letterSpacing:".05em",marginBottom:3}}>WELCOME TO DUNK LAB 🏀</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.6,marginBottom:8}}>Your personalized dunk program is ready. Complete your first workout to start earning XP and tracking progress.</div>
+        <div className="pop" style={{background:`linear-gradient(135deg,${theme.accent}12,${C.gold}08)`,border:`1px solid ${theme.accent}44`,borderRadius:9,padding:"13px 15px",marginBottom:10}}>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:theme.accent,letterSpacing:".05em",marginBottom:3}}>WELCOME TO DUNK LAB 🏀</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:8}}>Your personalized dunk program is ready. Complete your first workout to start earning XP and tracking progress.</div>
           <div style={{display:"flex",gap:10}}>
             <div style={{flex:1,background:C.dim,borderRadius:5,padding:"7px 9px"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:C.gold}}>1</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Complete a workout</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Complete a workout</div>
             </div>
             <div style={{flex:1,background:C.dim,borderRadius:5,padding:"7px 9px"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:C.gold}}>2</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Log your vertical</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Log your vertical</div>
             </div>
             <div style={{flex:1,background:C.dim,borderRadius:5,padding:"7px 9px"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:C.gold}}>3</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Track your dunk gap</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Track your dunk gap</div>
             </div>
           </div>
         </div>
       )}
 
       {/* LIVE COACH CARD — reacts to user state */}
-      <div className={returnMsg?"coachpulse":""} style={{background:`${C.orange}0D`,border:`1px solid ${returnMsg?C.orange+"66":C.orange+"30"}`,borderRadius:8,padding:"11px 14px",marginBottom:10}}>
+      <div className={returnMsg?"coachpulse":""} style={{background:`${theme.accent}0D`,border:`1px solid ${returnMsg?theme.accent+"66":theme.accent+"30"}`,borderRadius:8,padding:"11px 14px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
           <div style={{flex:1}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".14em",marginBottom:3}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:theme.accent,letterSpacing:".14em",marginBottom:3}}>
               🤖 COACH {returnMsg?"· MISSED DAY ALERT":"· TODAY"}
             </div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:15,color:"#EEE",lineHeight:1.4}}>
+            <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:15,color:"#EEE",lineHeight:1.4}}>
               {returnMsg || dailyCoachMsg}
             </div>
           </div>
-          <button onClick={()=>{setCoachOpen(true);setCoachQ(null);}} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".06em",padding:"6px 10px",borderRadius:4,flexShrink:0,marginTop:2}}>ASK →</button>
+          <button onClick={()=>{setCoachOpen(true);setCoachQ(null);}} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".06em",padding:"6px 10px",borderRadius:4,flexShrink:0,marginTop:2}}>ASK →</button>
         </div>
       </div>
 
       {/* PRIMARY ACTION */}
-      <button onClick={()=>setView("train")} className={`press ${!allDone&&!D.doneToday?"glowbtn":""}`} style={{width:"100%",background:allDone?C.green:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:".06em",padding:"17px 0",borderRadius:9,display:"flex",flexDirection:"column",alignItems:"center",gap:3,marginBottom:11,boxShadow:allDone?"none":"0 5px 26px #FF4D0040"}}>
+      <button onClick={()=>setView("train")} className={`press ${!allDone&&!D.doneToday?"glowbtn":""}`} style={{width:"100%",background:allDone?C.green:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:".06em",padding:"17px 0",borderRadius:9,display:"flex",flexDirection:"column",alignItems:"center",gap:3,marginBottom:11,boxShadow:allDone?"none":"0 5px 26px #FF4D0040"}}>
         {allDone?"✓ SESSION COMPLETE":"START TODAY'S WORKOUT"}
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.75}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#000000"}}>
           {D.doneToday?"XP claimed":`${todayW.title} · ${todayW.est} · ${doneCnt}/${todayW.drills.length} done`}
         </span>
       </button>
@@ -1501,8 +1853,8 @@ export default function App() {
       {/* POST WORKOUT COACH MESSAGE */}
       {postWorkoutMsg&&allDone&&D.doneToday&&(
         <div className="pop" style={{background:"#0A120D",border:`1px solid ${C.green}44`,borderRadius:7,padding:"10px 13px",marginBottom:10}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.green,letterSpacing:".14em",marginBottom:3}}>🤖 COACH FEEDBACK</div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:14,color:"#DDD",lineHeight:1.4}}>{postWorkoutMsg}</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.green,letterSpacing:".14em",marginBottom:3}}>🤖 COACH FEEDBACK</div>
+          <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:14,color:"#EEEEEE",lineHeight:1.4}}>{postWorkoutMsg}</div>
         </div>
       )}
 
@@ -1511,16 +1863,16 @@ export default function App() {
         <div style={{position:"absolute",right:-20,top:-20,width:120,height:120,background:`radial-gradient(circle,${rank.color}15,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:11}}>
           <div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:4}}>YOUR DUNK PLAN</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:15,color:C.muted,letterSpacing:".14em",marginBottom:4}}>YOUR DUNK PLAN</div>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:".05em",lineHeight:1,marginBottom:6}}>{D.name}</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               <Tag color={rank.color}>{rank.icon} {rank.name}</Tag>
               <Tag color={curLv.color}>{curLv.icon} {curLv.label}</Tag>
             </div>
           </div>
-          <div style={{textAlign:"center",background:D.streak>0?`${C.orange}14`:C.dim,border:`1px solid ${D.streak>0?C.orange+"44":C.border}`,borderRadius:7,padding:"7px 10px",minWidth:50,flexShrink:0}}>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,color:D.streak>=7?C.orange:D.streak>0?"#999":"#252535",lineHeight:1}}>{D.streak}</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:D.streak>0?C.orange:C.muted,letterSpacing:".1em",marginTop:1}}>🔥 STREAK</div>
+          <div style={{textAlign:"center",background:D.streak>0?`${theme.accent}14`:C.dim,border:`1px solid ${D.streak>0?theme.accent+"44":C.border}`,borderRadius:7,padding:"7px 10px",minWidth:50,flexShrink:0}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,color:D.streak>=7?theme.accent:D.streak>0?"#BBBBBB":"#252535",lineHeight:1}}>{D.streak}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:D.streak>0?theme.accent:C.muted,letterSpacing:".1em",marginTop:1}}>🔥 STREAK</div>
           </div>
         </div>
         <XPBar xp={D.xp}/>
@@ -1532,7 +1884,7 @@ export default function App() {
           ].map(s=>(
             <div key={s.l} style={{flex:1,background:C.dim,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,lineHeight:1}}>{s.v}</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginTop:2,letterSpacing:".08em"}}>{s.l}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:2,letterSpacing:".08em"}}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -1544,34 +1896,34 @@ export default function App() {
         {D.streak>0&&(
           <div style={{display:"flex",gap:2,marginTop:8}}>
             {Array.from({length:Math.min(D.streak,14)}).map((_,i)=>(
-              <div key={i} style={{flex:1,height:2,background:C.orange,borderRadius:1,opacity:.9-i*.04}}/>
+              <div key={i} style={{flex:1,height:2,background:theme.accent,borderRadius:1,opacity:.9-i*.04}}/>
             ))}
-            {D.streak>14&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,marginLeft:3}}>+{D.streak-14}</span>}
+            {D.streak>14&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:theme.accent,marginLeft:3}}>+{D.streak-14}</span>}
           </div>
         )}
       </div>
 
       {/* DUNK PROGRESS */}
-      <div style={{background:C.card,border:`1px solid ${gap===0?C.green+"55":C.orange+"30"}`,borderRadius:10,padding:"13px 14px",marginBottom:10}}>
+      <div style={{background:C.card,border:`1px solid ${gap===0?C.green+"55":theme.accent+"30"}`,borderRadius:10,padding:"13px 14px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em"}}>PROGRESS TO DUNK</div>
-          <button onClick={()=>setView("track")} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:C.orange}}>LOG VERT →</button>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:15,color:C.muted,letterSpacing:".14em"}}>PROGRESS TO DUNK</div>
+          <button onClick={()=>setView("track")} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:theme.accent}}>LOG VERT →</button>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:9}}>
           <div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginBottom:2}}>{gap>0?"INCHES FROM DUNKING":"YOU'RE READY"}</div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:42,letterSpacing:".04em",lineHeight:1,color:gap===0?C.green:C.orange}}>{gap===0?"READY 👑":`${gap}"`}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.muted,marginBottom:2}}>{gap>0?"INCHES FROM DUNKING":"YOU'RE READY"}</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:42,letterSpacing:".04em",lineHeight:1,color:gap===0?C.green:theme.accent}}>{gap===0?"READY 👑":`${gap}"`}</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Vert · ~{snap.wkEst}wk</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>Vert · ~{snap.wkEst}wk</div>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:".04em"}}>{effVert}"</div>
           </div>
         </div>
         <div style={{height:7,background:C.dim,borderRadius:4,marginBottom:4}}>
-          <div style={{height:7,width:`${pct}%`,background:`linear-gradient(90deg,${C.orange},#FF8000)`,borderRadius:4,transition:"width .7s"}}/>
+          <div style={{height:7,width:`${pct}%`,background:`linear-gradient(90deg,${theme.accent},#FF8000)`,borderRadius:4,transition:"width .7s"}}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:9}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:C.orange,letterSpacing:".04em"}}>{pct}% THERE</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:theme.accent,letterSpacing:".04em"}}>{pct}% THERE</div>
           {nextLv&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:nextLv.color}}>NEXT: {nextLv.icon} {nextLv.label}</div>}
         </div>
         {/* Milestones */}
@@ -1596,18 +1948,18 @@ export default function App() {
           {weeklyGain!==null&&(
             <div style={{flex:1,background:weeklyGain>0?`${C.green}10`:`${C.red}10`,border:`1px solid ${weeklyGain>0?C.green:C.red}30`,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:weeklyGain>0?C.green:C.red}}>{weeklyGain>0?"+":""}{weeklyGain}"</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>THIS WEEK</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>THIS WEEK</div>
             </div>
           )}
           {D.vertLogs.length>=2&&(()=>{const g=(D.vertLogs[D.vertLogs.length-1].v-D.vertLogs[0].v).toFixed(1);return parseFloat(g)>0?(
             <div style={{flex:1,background:`${C.green}10`,border:`1px solid ${C.green}28`,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:C.green}}>+{g}"</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>ALL TIME</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>ALL TIME</div>
             </div>
           ):null;})()}
           <div style={{flex:1,background:C.dim,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:C.gold}}>~{snap.wkEst}wk</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>EST.</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>EST.</div>
           </div>
         </div>
       </div>
@@ -1618,21 +1970,21 @@ export default function App() {
         return (
           <div style={{background:chDone?"#0A130D":chUnlocked?C.card:"#0A0A10",border:`1px solid ${chDone?C.green+"44":chUnlocked?C.border:"#1A1A28"}`,borderRadius:9,padding:"11px 13px",marginBottom:10,opacity:chUnlocked?1:.75}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:chDone?C.green:chUnlocked?C.gold:C.muted,letterSpacing:".14em"}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:chDone?C.green:chUnlocked?C.gold:C.muted,letterSpacing:".14em"}}>
                 {chUnlocked?"⚡ DAILY CHALLENGE":"🔒 DAILY CHALLENGE"}
               </div>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:chDone?C.green:chUnlocked?C.gold:C.muted}}>+{todayCh.xp} XP</span>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:chDone?C.green:chUnlocked?C.gold:C.muted}}>+{todayCh.xp} XP</span>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
               <div style={{display:"flex",alignItems:"center",gap:9}}>
                 <span style={{fontSize:18,opacity:chUnlocked?1:.4}}>{todayCh.icon}</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,color:chDone?C.green:chUnlocked?"#F0F0F0":C.muted}}>{todayCh.label}</span>
+                <span style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:14,color:chDone?C.green:chUnlocked?"#F0F0F0":C.muted}}>{todayCh.label}</span>
               </div>
               {!chUnlocked
-                ? <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,flexShrink:0}}>Reach ROOKIE to unlock</span>
+                ? <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,flexShrink:0}}>Reach ROOKIE to unlock</span>
                 : !chDone
                   ? <button onClick={()=>{mut(prev=>({...prev,chDates:[...(prev.chDates||[]),today()],xp:(prev.xp||0)+todayCh.xp}));spawnXP(todayCh.xp);showT(`+${todayCh.xp} XP`);}} style={{background:C.gold,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:12,letterSpacing:".08em",padding:"7px 13px",borderRadius:4,flexShrink:0}}>DONE</button>
-                  : <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.green,flexShrink:0}}>✓ CLAIMED</span>
+                  : <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.green,flexShrink:0}}>✓ CLAIMED</span>
               }
             </div>
           </div>
@@ -1665,10 +2017,10 @@ export default function App() {
         </button>
       )}
       {!D.isPro&&D.sessions>=1&&(
-        <div style={{background:C.card,border:`1px solid ${C.orange}22`,borderRadius:9,padding:"12px 14px"}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,marginBottom:2}}>Want a clear path to dunking?</div>
+        <div style={{background:C.card,border:`1px solid ${theme.accent}22`,borderRadius:9,padding:"12px 14px"}}>
+          <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:14,marginBottom:2}}>Want a clear path to dunking?</div>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:9}}>Most users gain 2–4" in 6 weeks with a structured program.</div>
-          <button onClick={()=>setShowPro(true)} style={{width:"100%",background:`linear-gradient(90deg,${C.orange},#FF7A00)`,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:".06em",padding:"12px 0",borderRadius:6,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <button onClick={()=>setShowPro(true)} style={{width:"100%",background:`linear-gradient(90deg,${theme.accent},#FF7A00)`,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:".06em",padding:"12px 0",borderRadius:6,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             SEE THE 6-WEEK PROGRAM
             <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.75}}>$4.99/mo · Cancel anytime</span>
           </button>
@@ -1678,47 +2030,47 @@ export default function App() {
       {/* ── COACH MODAL ──────────────────────────────────────────────────── */}
       {coachOpen&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:998,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>{setCoachOpen(false);setCoachQ(null);setCoachTextReply(null);setCoachTyping(false);}}>
-          <div className="slideup coachglow" style={{background:"#0D0D15",border:`1px solid ${C.orange}55`,borderRadius:"14px 14px 0 0",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",position:"relative",wordWrap:"break-word",overflowWrap:"break-word"}} onClick={e=>e.stopPropagation()}>
+          <div className="slideup coachglow" style={{background:"#0D0D15",border:`1px solid ${theme.accent}55`,borderRadius:"14px 14px 0 0",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto",position:"relative",wordWrap:"break-word",overflowWrap:"break-word"}} onClick={e=>e.stopPropagation()}>
 
             {/* Header bar */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 16px 0"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:36,height:36,borderRadius:"50%",background:`${C.orange}22`,border:`1px solid ${C.orange}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
+                <div style={{width:36,height:36,borderRadius:"50%",background:`${theme.accent}22`,border:`1px solid ${theme.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
                 <div>
                   <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".06em",lineHeight:1,wordBreak:"break-word"}}>COACH</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#9090AA",marginTop:1,wordBreak:"break-word"}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:1,wordBreak:"break-word"}}>
                     {D.sessions} sessions · {wkSess} this wk · {gap>0?`${gap}" away`:"ready to dunk"}
                   </div>
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 {!D.isPro&&(
-                  <div style={{background:coachQLeft===0?`${C.red}20`:`${C.orange}18`,border:`1px solid ${coachQLeft===0?C.red+"55":C.orange+"55"}`,borderRadius:5,padding:"4px 9px",textAlign:"center",minWidth:46}}>
-                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:coachQLeft===0?C.red:C.orange,lineHeight:1}}>{coachQLeft}/{3}</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"#9090AA",letterSpacing:".06em"}}>LEFT</div>
+                  <div style={{background:coachQLeft===0?`${C.red}20`:`${theme.accent}18`,border:`1px solid ${coachQLeft===0?C.red+"55":theme.accent+"55"}`,borderRadius:5,padding:"4px 9px",textAlign:"center",minWidth:46}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:coachQLeft===0?C.red:theme.accent,lineHeight:1}}>{coachQLeft}/{3}</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.label,letterSpacing:".06em"}}>LEFT</div>
                   </div>
                 )}
                 {/* X close button — always visible */}
-                <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setCoachTextReply(null);setCoachTyping(false);}} style={{background:"#1A1A24",border:`1px solid ${C.border}`,color:"#888",borderRadius:6,width:32,height:32,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✕</button>
+                <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setCoachTextReply(null);setCoachTyping(false);}} style={{background:"#1A1A24",border:`1px solid ${C.border}`,color:"#B8B8D0",borderRadius:6,width:32,height:32,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✕</button>
               </div>
             </div>
 
             {/* Today's Assessment — memoized, never re-renders from typing */}
             <div style={{margin:"12px 16px 0",background:C.dim,borderRadius:8,padding:"11px 13px"}}>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".14em",marginBottom:4}}>TODAY'S ASSESSMENT</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:15,lineHeight:1.5,color:"#EEEEEE"}}>{dailyCoachMsg}</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:theme.accent,letterSpacing:".14em",marginBottom:4}}>TODAY'S ASSESSMENT</div>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:15,lineHeight:1.5,color:"#EEEEEE"}}>{dailyCoachMsg}</div>
             </div>
 
             {/* Stats row */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,margin:"10px 16px 0"}}>
               {[
-                {l:"INCHES AWAY", v:gap>0?`${gap}"`:"READY",   c:gap<=5?C.green:gap<=12?C.gold:C.orange},
+                {l:"INCHES AWAY", v:gap>0?`${gap}"`:"READY",   c:gap<=5?C.green:gap<=12?C.gold:theme.accent},
                 {l:"THIS WEEK",   v:`${wkSess}x sessions`,       c:wkSess>=4?C.green:wkSess>=2?C.gold:C.red},
-                {l:"WK GAIN",     v:weeklyGain!=null?`${weeklyGain>0?"+":""}${weeklyGain}"`:"—", c:weeklyGain&&weeklyGain>0?C.green:"#9090AA"},
+                {l:"WK GAIN",     v:weeklyGain!=null?`${weeklyGain>0?"+":""}${weeklyGain}"`:"—", c:weeklyGain&&weeklyGain>0?C.green:C.label},
               ].map(s=>(
                 <div key={s.l} style={{background:"#0A0A12",border:`1px solid ${C.border}`,borderRadius:6,padding:"8px 6px",textAlign:"center"}}>
                   <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:s.c,lineHeight:1}}>{s.v}</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:"#7070888",marginTop:2,letterSpacing:".08em"}}>{s.l}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.label,marginTop:2,letterSpacing:".08em"}}>{s.l}</div>
                 </div>
               ))}
             </div>
@@ -1728,8 +2080,8 @@ export default function App() {
 
               {/* ── TYPING INDICATOR ── */}
               {coachTyping&&(
-                <div className="fade" style={{background:`${C.orange}0E`,border:`1px solid ${C.orange}30`,borderRadius:8,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:30,height:30,borderRadius:"50%",background:`${C.orange}20`,border:`1px solid ${C.orange}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🤖</div>
+                <div className="fade" style={{background:`${theme.accent}0E`,border:`1px solid ${theme.accent}30`,borderRadius:8,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:`${theme.accent}20`,border:`1px solid ${theme.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🤖</div>
                   <div style={{display:"flex",alignItems:"center",gap:0,paddingTop:3}}>
                     <span className="td1"/><span className="td2"/><span className="td3"/>
                   </div>
@@ -1740,55 +2092,55 @@ export default function App() {
               {!coachTyping && coachQ !== null && coachQ >= 0 && (
                 <div className="fade">
                   {/* Question label */}
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".12em",marginBottom:8}}>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:theme.accent,letterSpacing:".12em",marginBottom:8}}>
                     {COACH_Qs[coachQ]?.q.toUpperCase()}
                   </div>
                   {/* Response card */}
-                  <div style={{background:`${C.orange}0C`,border:`1px solid ${C.orange}30`,borderRadius:9,padding:"14px 14px",marginBottom:10}}>
+                  <div style={{background:`${theme.accent}0C`,border:`1px solid ${theme.accent}30`,borderRadius:9,padding:"14px 14px",marginBottom:10}}>
                     <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{width:28,height:28,borderRadius:"50%",background:`${C.orange}20`,border:`1px solid ${C.orange}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:1}}>🤖</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:16,color:"#EEEEEE",lineHeight:1.5}}>
+                      <div style={{width:28,height:28,borderRadius:"50%",background:`${theme.accent}20`,border:`1px solid ${theme.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:1}}>🤖</div>
+                      <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:16,color:"#EEEEEE",lineHeight:1.5}}>
                         {coachAnswer(snap, COACH_Qs[coachQ]?.key)}
                       </div>
                     </div>
                   </div>
                   {/* Suggested follow-ups */}
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#9090AA",letterSpacing:".1em",marginBottom:6}}>FOLLOW-UP QUESTIONS</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.label,letterSpacing:".1em",marginBottom:6}}>FOLLOW-UP QUESTIONS</div>
                   <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:12}}>
                     {COACH_Qs.filter((_,i)=>i!==coachQ).slice(0,2).map(q=>(
                       <button key={q.key} onClick={()=>{setCoachTyping(true);setTimeout(()=>{setCoachQ(COACH_Qs.findIndex(x=>x.key===q.key));setCoachTyping(false);},850+Math.random()*300);}} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"9px 12px",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}}>
-                        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:13,color:"#DDDDDD"}}>{q.q}</span>
-                        <span style={{color:C.orange,fontSize:13,flexShrink:0}}>→</span>
+                        <span style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:13,color:"#EEEEEE"}}>{q.q}</span>
+                        <span style={{color:theme.accent,fontSize:13,flexShrink:0}}>→</span>
                       </button>
                     ))}
                   </div>
                   {/* Back button */}
-                  <button onClick={()=>{setCoachQ(null);setCoachTextReply(null);}} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#AAAACC",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK TO QUESTIONS</button>
+                  <button onClick={()=>{setCoachQ(null);setCoachTextReply(null);}} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK TO QUESTIONS</button>
                 </div>
               )}
 
               {/* ── TEXT REPLY VIEW ── */}
               {!coachTyping && coachQ === null && coachTextReply && (
                 <div className="fade" style={{marginBottom:12}}>
-                  <div style={{background:`${C.orange}0C`,border:`1px solid ${C.orange}30`,borderRadius:9,padding:"14px 14px",marginBottom:10}}>
+                  <div style={{background:`${theme.accent}0C`,border:`1px solid ${theme.accent}30`,borderRadius:9,padding:"14px 14px",marginBottom:10}}>
                     <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                      <div style={{width:28,height:28,borderRadius:"50%",background:`${C.orange}20`,border:`1px solid ${C.orange}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:1}}>🤖</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:16,color:"#EEEEEE",lineHeight:1.5}}>{coachTextReply}</div>
+                      <div style={{width:28,height:28,borderRadius:"50%",background:`${theme.accent}20`,border:`1px solid ${theme.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginTop:1}}>🤖</div>
+                      <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:16,color:"#EEEEEE",lineHeight:1.5}}>{coachTextReply}</div>
                     </div>
                   </div>
-                  <button onClick={()=>setCoachTextReply(null)} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#AAAACC",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK TO QUESTIONS</button>
+                  <button onClick={()=>setCoachTextReply(null)} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK TO QUESTIONS</button>
                 </div>
               )}
 
               {/* ── LIMIT REACHED VIEW ── */}
               {coachQ === -1 && (
                 <div className="fade" style={{marginBottom:12}}>
-                  <div style={{background:`${C.orange}10`,border:`1px solid ${C.orange}44`,borderRadius:8,padding:"14px 14px",marginBottom:10}}>
-                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:C.orange,letterSpacing:".04em",marginBottom:6}}>DAILY LIMIT REACHED</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#AAAACC",lineHeight:1.6,marginBottom:12}}>You've used your 3 free questions today. Upgrade to Pro for unlimited AI coach access — get answers anytime.</div>
-                    <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setShowPro(true);}} style={{width:"100%",background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".1em",padding:"12px 0",borderRadius:6}}>UNLOCK UNLIMITED COACHING</button>
+                  <div style={{background:`${theme.accent}10`,border:`1px solid ${theme.accent}44`,borderRadius:8,padding:"14px 14px",marginBottom:10}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:theme.accent,letterSpacing:".04em",marginBottom:6}}>DAILY LIMIT REACHED</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#B8B8D0",lineHeight:1.6,marginBottom:12}}>You've used your 3 free questions today. Upgrade to Pro for unlimited AI coach access — get answers anytime.</div>
+                    <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setShowPro(true);}} style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".1em",padding:"12px 0",borderRadius:6}}>UNLOCK UNLIMITED COACHING</button>
                   </div>
-                  <button onClick={()=>setCoachQ(null)} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#AAAACC",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK</button>
+                  <button onClick={()=>setCoachQ(null)} style={{width:"100%",background:"#14141E",border:`1px solid ${C.border}`,color:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"11px 0",borderRadius:6}}>← BACK</button>
                 </div>
               )}
 
@@ -1797,7 +2149,7 @@ export default function App() {
                 <div>
                   {/* Text input */}
                   <div style={{marginBottom:14}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#9090AA",letterSpacing:".12em",marginBottom:7}}>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.label,letterSpacing:".12em",marginBottom:7}}>
                       ASK ANYTHING{!D.isPro&&coachQLeft===0?" — UPGRADE FOR UNLIMITED":""}
                     </div>
                     <div style={{display:"flex",gap:7}}>
@@ -1808,32 +2160,32 @@ export default function App() {
                         disabled={coachQLeft===0&&!D.isPro}
                         onChange={e=>setCoachText(e.target.value)}
                         onKeyDown={e=>{if(e.key==="Enter")submitCoachText();}}
-                        style={{flex:1,fontSize:13,padding:"10px 12px",borderColor:coachText?C.orange:C.border,opacity:coachQLeft===0&&!D.isPro?0.45:1,color:"#F0F0F0"}}
+                        style={{flex:1,fontSize:13,padding:"10px 12px",borderColor:coachText?theme.accent:C.border,opacity:coachQLeft===0&&!D.isPro?0.45:1,color:"#F0F0F0"}}
                       />
                       <button
                         onClick={submitCoachText}
                         disabled={!coachText.trim()||(coachQLeft===0&&!D.isPro)}
-                        style={{background:coachText.trim()&&(coachQLeft>0||D.isPro)?C.orange:"#1A1A24",color:coachText.trim()&&(coachQLeft>0||D.isPro)?"#000":"#555",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:".08em",padding:"0 16px",borderRadius:5,flexShrink:0,transition:"all .15s"}}
+                        style={{background:coachText.trim()&&(coachQLeft>0||D.isPro)?theme.accent:"#1A1A24",color:coachText.trim()&&(coachQLeft>0||D.isPro)?"#000":"#B8B8D0",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:".08em",padding:"0 16px",borderRadius:5,flexShrink:0,transition:"all .15s"}}
                       >ASK</button>
                     </div>
                   </div>
 
                   {/* Quick questions */}
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:"#9090AA",letterSpacing:".12em",marginBottom:7}}>QUICK QUESTIONS</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.label,letterSpacing:".12em",marginBottom:7}}>QUICK QUESTIONS</div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {COACH_Qs.map((q)=>(
                       <button key={q.key} onClick={()=>useCoachQ(q.key)} disabled={coachQLeft===0&&!D.isPro} style={{background:"#0E0E18",border:`1px solid ${C.border}`,borderRadius:7,padding:"12px 13px",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",opacity:coachQLeft===0&&!D.isPro?0.45:1,transition:"border-color .15s"}}>
-                        <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:14,color:"#E8E8E8"}}>{q.q}</span>
-                        <span style={{color:C.orange,fontSize:14,flexShrink:0,marginLeft:8}}>→</span>
+                        <span style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:14,color:"#E8E8E8"}}>{q.q}</span>
+                        <span style={{color:theme.accent,fontSize:14,flexShrink:0,marginLeft:8}}>→</span>
                       </button>
                     ))}
                   </div>
 
                   {/* Limit nudge */}
                   {coachQLeft===0&&!D.isPro&&(
-                    <div className="pop" style={{background:`${C.orange}0E`,border:`1px solid ${C.orange}33`,borderRadius:7,padding:"11px 13px",marginTop:10}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.orange,lineHeight:1.55,marginBottom:8}}>3 free questions used today. Come back tomorrow or upgrade for unlimited.</div>
-                      <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setShowPro(true);}} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:13,letterSpacing:".08em",padding:"8px 18px",borderRadius:5}}>UNLOCK UNLIMITED</button>
+                    <div className="pop" style={{background:`${theme.accent}0E`,border:`1px solid ${theme.accent}33`,borderRadius:7,padding:"11px 13px",marginTop:10}}>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:theme.accent,lineHeight:1.55,marginBottom:8}}>3 free questions used today. Come back tomorrow or upgrade for unlimited.</div>
+                      <button onClick={()=>{setCoachOpen(false);setCoachQ(null);setShowPro(true);}} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:13,letterSpacing:".08em",padding:"8px 18px",borderRadius:5}}>UNLOCK UNLIMITED</button>
                     </div>
                   )}
                 </div>
@@ -1851,7 +2203,7 @@ export default function App() {
       {/* Today's Focus header */}
       <div style={{background:`${todayW.color}12`,border:`1px solid ${todayW.color}33`,borderRadius:7,padding:"8px 13px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:2}}>TODAY'S FOCUS</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:2}}>TODAY'S FOCUS</div>
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:todayW.color,letterSpacing:".06em"}}>{todayFocus}</div>
         </div>
         <div style={{textAlign:"right"}}>
@@ -1878,17 +2230,17 @@ export default function App() {
         </div>
       )}
 
-      <button onClick={()=>setWhyOpen(w=>!w)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,padding:0,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
+      <button onClick={()=>setWhyOpen(w=>!w)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,padding:0,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
         {whyOpen?"▾":"▸"} Why this works
       </button>
       {whyOpen&&(
         <div style={{background:C.dim,borderRadius:6,padding:"8px 11px",marginBottom:8,borderLeft:`3px solid ${todayW.color}`}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.5}}>{["Plyometrics train fast-twitch fibers — the ones that move you off the ground.","Hip and leg strength is the engine behind every inch of vertical.","First-step speed translates directly to on-court explosiveness.","Dedicated vertical session — every drill designed to add inches."][new Date().getDay()%4]}</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,lineHeight:1.5}}>{["Plyometrics train fast-twitch fibers — the ones that move you off the ground.","Hip and leg strength is the engine behind every inch of vertical.","First-step speed translates directly to on-court explosiveness.","Dedicated vertical session — every drill designed to add inches."][new Date().getDay()%4]}</div>
         </div>
       )}
       <div style={{background:`${todayW.color}09`,border:`1px solid ${todayW.color}22`,borderRadius:6,padding:"8px 11px",marginBottom:9}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:todayW.color,letterSpacing:".14em",marginBottom:2}}>🔥 WARMUP FIRST</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#C8C8C8",lineHeight:1.6}}>{todayW.warmup}</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:todayW.color,letterSpacing:".14em",marginBottom:2}}>🔥 WARMUP FIRST</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:"#C8C8C8",lineHeight:1.6}}>{todayW.warmup}</div>
       </div>
       {todayW.drills.map(d=>{
         const k = `${wkey}-${d.name}`;
@@ -1900,10 +2252,11 @@ export default function App() {
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                   {done&&<span style={{fontSize:13,color:C.green}}>✓</span>}
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:done?C.green:skipped?"#9A6060":"#F0F0F0"}}>{d.name}</div>
+                  <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18,color:done?C.green:skipped?"#9A6060":"#F0F0F0"}}>{d.name}</div>
                 </div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>{d.sets} × {d.reps}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:todayW.color,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:15,color:C.muted}}>{d.sets} × {d.reps}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:todayW.color,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                <DrillInstructions drill={d} accentColor={accentColor}/>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
                 {/* EXPLOIT FIX: once done, button is disabled and locked */}
@@ -1926,9 +2279,9 @@ export default function App() {
                   style={{
                     background:done?C.green:C.dim,
                     border:`1px solid ${done?C.green:C.border}`,
-                    color:done?"#000":"#555",
+                    color:done?"#000":"#B8B8D0",
                     borderRadius:5,padding:"7px 10px",
-                    fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".08em",
+                    fontFamily:"'DM Mono',monospace",fontSize:15,letterSpacing:".08em",
                     transition:"all .2s",
                     cursor:done?"default":"pointer",
                     opacity:done?1:1,
@@ -1936,7 +2289,7 @@ export default function App() {
                 >
                   {done?"✓ COMPLETED":"DONE"}
                 </button>
-                {!done&&skipDrill!==k&&<button onClick={()=>setSkipDrill(k)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,padding:"2px 0",textAlign:"center"}}>skip</button>}
+                {!done&&skipDrill!==k&&<button onClick={()=>setSkipDrill(k)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:14,color:C.muted,padding:"2px 0",textAlign:"center"}}>SKIP</button>}
                 {skipDrill===k&&(
                   <select defaultValue="" onChange={e=>{if(e.target.value){setSkipDrill(null);showT("Logged.");}}} style={{fontSize:9,padding:"4px 6px",borderRadius:4,color:C.muted,background:C.card,border:`1px solid ${C.border}`,width:70}}>
                     <option value="">reason</option>
@@ -1951,20 +2304,20 @@ export default function App() {
         );
       })}
       <div style={{background:`${C.cyan}08`,border:`1px solid ${C.cyan}22`,borderRadius:6,padding:"8px 11px",marginTop:4,marginBottom:9}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.cyan,letterSpacing:".14em",marginBottom:2}}>❄️ COOL DOWN</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#C8C8C8",lineHeight:1.6}}>{todayW.cool}</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.cyan,letterSpacing:".14em",marginBottom:2}}>❄️ COOL DOWN</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:"#C8C8C8",lineHeight:1.6}}>{todayW.cool}</div>
       </div>
       {allDone&&(
         <div className="pop" style={{background:"#0A130D",border:`1px solid ${C.green}`,borderRadius:8,padding:"15px",textAlign:"center"}}>
           <div style={{fontSize:26,marginBottom:5}}>🎉</div>
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:C.green,letterSpacing:".06em",marginBottom:7}}>WORKOUT COMPLETE!</div>
           {!D.doneToday&&(
-            <button onClick={markDone} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".1em",padding:"11px 26px",borderRadius:5}}>CLAIM +60 XP 🔥</button>
+            <button onClick={markDone} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".1em",padding:"11px 26px",borderRadius:5}}>CLAIM +60 XP 🔥</button>
           )}
           {D.doneToday&&(
             <div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.green,marginBottom:8}}>✓ XP claimed — see you tomorrow</div>
-              {postWorkoutMsg&&<div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:13,color:"#AAA",lineHeight:1.4,padding:"8px 12px",background:C.dim,borderRadius:5}}>{postWorkoutMsg}</div>}
+              {postWorkoutMsg&&<div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:13,color:"#BBBBBB",lineHeight:1.4,padding:"8px 12px",background:C.dim,borderRadius:5}}>{postWorkoutMsg}</div>}
             </div>
           )}
         </div>
@@ -1976,12 +2329,12 @@ export default function App() {
   const TrackView = (
     <div className="fade">
       <div style={{marginBottom:16}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".18em",marginBottom:4}}>YOUR NUMBERS</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:15,color:C.muted,letterSpacing:".18em",marginBottom:4}}>YOUR NUMBERS</div>
         <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,letterSpacing:".04em",lineHeight:1}}>TRACK</div>
       </div>
       <div style={{display:"flex",gap:5,marginBottom:14}}>
         {[["vert","VERTICAL"],["sprint","SPRINTS"],["level","LEVEL"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTSub(k)} style={{background:tSub===k?C.orange:"#111",color:tSub===k?"#000":"#555",border:`1px solid ${tSub===k?C.orange:C.border}`,fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:".08em",padding:"7px 14px",borderRadius:4,whiteSpace:"nowrap",transition:"all .15s"}}>{l}</button>
+          <button key={k} onClick={()=>setTSub(k)} style={{background:tSub===k?theme.accent:"#111",color:tSub===k?"#000":"#B8B8D0",border:`1px solid ${tSub===k?theme.accent:C.border}`,fontFamily:"'DM Mono',monospace",fontSize:13,letterSpacing:".08em",padding:"7px 14px",borderRadius:4,whiteSpace:"nowrap",transition:"all .15s"}}>{l}</button>
         ))}
       </div>
 
@@ -1990,23 +2343,23 @@ export default function App() {
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:14,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
               <div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:".12em",marginBottom:3}}>VERTICAL JUMP</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:C.orange,lineHeight:1}}>{lastVert||"—"}<span style={{fontSize:12,color:C.muted,fontFamily:"'DM Mono',monospace",marginLeft:3}}>in</span></div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,letterSpacing:".12em",marginBottom:3}}>VERTICAL JUMP</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:32,color:theme.accent,lineHeight:1}}>{lastVert||"—"}<span style={{fontSize:12,color:C.muted,fontFamily:"'DM Mono',monospace",marginLeft:3}}>in</span></div>
               </div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <input type="number" step=".5" min="0" placeholder="—" value={vertInput} onChange={e=>setVertInput(e.target.value)} style={{width:72,fontSize:20,padding:"8px 10px",textAlign:"right",borderColor:vertInput?C.orange:C.border}}/>
-                <button onClick={logVert} disabled={!vertInput} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:13,letterSpacing:".08em",padding:"0 12px",borderRadius:4,opacity:vertInput?1:.3,height:40}}>LOG</button>
+                <input type="number" step=".5" min="0" placeholder="—" value={vertInput} onChange={e=>setVertInput(e.target.value)} style={{width:72,fontSize:20,padding:"8px 10px",textAlign:"right",borderColor:vertInput?theme.accent:C.border}}/>
+                <button onClick={logVert} disabled={!vertInput} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:13,letterSpacing:".08em",padding:"0 12px",borderRadius:4,opacity:vertInput?1:.3,height:40}}>LOG</button>
               </div>
             </div>
             {/* Dynamic feedback after logging */}
           {vertFeedback&&(
-            <div className="pop" style={{background:vertFeedback.positive?`${C.green}10`:`${C.orange}10`,border:`1px solid ${vertFeedback.positive?C.green:C.orange}33`,borderRadius:6,padding:"9px 11px",marginTop:8}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:14,color:vertFeedback.positive?C.green:C.orange,lineHeight:1.4}}>{vertFeedback.msg}</div>
+            <div className="pop" style={{background:vertFeedback.positive?`${C.green}10`:`${theme.accent}10`,border:`1px solid ${vertFeedback.positive?C.green:theme.accent}33`,borderRadius:6,padding:"9px 11px",marginTop:8}}>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:14,color:vertFeedback.positive?C.green:theme.accent,lineHeight:1.4}}>{vertFeedback.msg}</div>
               <button onClick={()=>setVertFeedback(null)} style={{background:"none",border:"none",fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginTop:4,padding:0}}>dismiss</button>
             </div>
           )}
-          <VertChart logs={D.vertLogs}/>
-            {D.vertLogs.length===1&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:4}}>Log a second measurement to see your graph.</div>}
+          <VertChart logs={D.vertLogs} accentColor={accentColor}/>
+            {D.vertLogs.length===1&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,marginTop:4}}>Log a second measurement to see your graph.</div>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
             {[
@@ -2016,7 +2369,7 @@ export default function App() {
               {l:"THIS MONTH",        v:monthlyGain!==null?`${monthlyGain>0?"+":""}${monthlyGain}"`:"—",c:monthlyGain&&monthlyGain>0?C.green:C.muted},
             ].map(s=>(
               <div key={s.l} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:7,padding:"10px 11px"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".1em",marginBottom:4}}>{s.l}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".1em",marginBottom:4}}>{s.l}</div>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:s.c,letterSpacing:".04em"}}>{s.v}</div>
               </div>
             ))}
@@ -2024,8 +2377,8 @@ export default function App() {
           {/* Coach insight — unlocks at VARSITY rank */}
           {D.vertLogs.length>=2&&(
             hasRank(D.xp,"VARSITY") ? (
-              <div style={{background:`${C.orange}09`,border:`1px solid ${C.orange}25`,borderRadius:6,padding:"9px 11px"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".12em",marginBottom:3}}>🤖 COACH INSIGHT</div>
+              <div style={{background:`${theme.accent}09`,border:`1px solid ${theme.accent}25`,borderRadius:6,padding:"9px 11px"}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:theme.accent,letterSpacing:".12em",marginBottom:3}}>🤖 COACH INSIGHT</div>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.5}}>
                   {coachAnswer(snap,"vert_improving")}
                 </div>
@@ -2040,7 +2393,7 @@ export default function App() {
           {D.vertLogs.length===0&&(
             <div style={{textAlign:"center",padding:"28px 16px",border:`1px dashed ${C.border}`,borderRadius:8,marginBottom:10}}>
               <div style={{fontSize:32,marginBottom:8}}>📊</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,marginBottom:4}}>No vertical logs yet</div>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:16,marginBottom:4}}>No vertical logs yet</div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.6}}>Log your first vertical above to unlock your progress graph. First workout unlocks training insights.</div>
             </div>
           )}
@@ -2050,13 +2403,13 @@ export default function App() {
       {tSub==="sprint"&&(
         <div>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:14,marginBottom:10}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:9}}>LOG SPRINT <span style={{color:C.gold}}>+20 XP</span></div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:9}}>LOG SPRINT <span style={{color:C.gold}}>+20 XP</span></div>
             {Object.keys(sprintPBs).length > 0 && (
               <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
                 {Object.entries(sprintPBs).map(([dist,time])=>(
                   <div key={dist} style={{background:C.dim,borderRadius:5,padding:"5px 9px",textAlign:"center",flexShrink:0}}>
                     <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:C.gold}}>{time}s</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>{dist}yd PB</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{dist}yd PB</div>
                   </div>
                 ))}
               </div>
@@ -2074,8 +2427,8 @@ export default function App() {
           {D.sprints.length===0&&(
             <div style={{textAlign:"center",padding:"28px 16px",border:`1px dashed ${C.border}`,borderRadius:8}}>
               <div style={{fontSize:32,marginBottom:8}}>⚡</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,marginBottom:4}}>No sprints logged yet</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Log your first sprint above. Speed training directly improves court explosiveness.</div>
+              <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:19,marginBottom:4}}>No sprints logged yet</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>Log your first sprint above. Speed training directly improves court explosiveness.</div>
             </div>
           )}
           {D.sprints.length>0&&D.sprints.slice().reverse().slice(0,10).map((s,i)=>(
@@ -2089,13 +2442,13 @@ export default function App() {
 
       {tSub==="level"&&(
         <div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:9}}>Update when you hit a new milestone. Adjusts your workout difficulty.</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,marginBottom:9}}>Update when you hit a new milestone. Adjusts your workout difficulty.</div>
           {LEVELS.map(lv=>(
             <button key={lv.id} onClick={()=>{mut(prev=>({...prev,level:lv.id}));showT(`Level updated: ${lv.label}`);}} style={{background:D.level===lv.id?`${lv.color}18`:C.card,border:`1px solid ${D.level===lv.id?lv.color:C.border}`,borderRadius:6,padding:"11px 12px",display:"flex",alignItems:"center",gap:12,transition:"all .15s",width:"100%",marginBottom:5}}>
               <span style={{fontSize:18,minWidth:24}}>{lv.icon}</span>
               <div style={{flex:1,textAlign:"left"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:14,color:D.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>~{lv.vert}" vertical</div>
+                <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:17,color:D.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>~{lv.vert}" vertical</div>
               </div>
               {D.level===lv.id&&<span style={{color:lv.color,fontSize:12,fontFamily:"'DM Mono',monospace"}}>CURRENT</span>}
             </button>
@@ -2133,7 +2486,7 @@ export default function App() {
         <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,background:`radial-gradient(circle,${rank.color}22,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{fontSize:48,marginBottom:6}}>{rank.icon}</div>
         <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:36,color:rank.color,letterSpacing:".06em",lineHeight:1,marginBottom:2}}>{rank.name}</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:10,lineHeight:1.5}}>{RANK_REWARDS[rank.name]}</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginBottom:10,lineHeight:1.5}}>{RANK_REWARDS[rank.name]}</div>
         <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:C.gold,letterSpacing:".05em",marginBottom:13}}>{D.xp.toLocaleString()} XP</div>
         <XPBar xp={D.xp}/>
         {/* Next rank preview */}
@@ -2169,7 +2522,7 @@ export default function App() {
             ].map(s=>(
               <div key={s.l} style={{background:C.dim,borderRadius:5,padding:"8px 0",textAlign:"center"}}>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:s.c,lineHeight:1}}>{s.v}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginTop:2,letterSpacing:".1em"}}>{s.l}</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:2,letterSpacing:".1em"}}>{s.l}</div>
               </div>
             ))}
           </div>
@@ -2179,18 +2532,18 @@ export default function App() {
         </div>
       ) : (
         <div style={{background:C.dim,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px",marginBottom:13,opacity:.55}}>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:6}}>🔒 WEEKLY PERFORMANCE REPORT</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>Reach STARTER rank to unlock your weekly performance breakdown.</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:15,color:C.muted,letterSpacing:".14em",marginBottom:6}}>🔒 WEEKLY PERFORMANCE REPORT</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>Reach STARTER rank to unlock your weekly performance breakdown.</div>
         </div>
       )}
 
       {/* XP earn guide */}
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 13px",marginBottom:13}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:9}}>HOW TO EARN XP</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:9}}>HOW TO EARN XP</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
           {[["Complete workout","+60 XP"],["Each drill done","+10 XP"],["Log vertical","+25 XP"],["Log sprint","+20 XP"],["7-day streak","+100 XP"],["Daily challenge","+20–40 XP"],["Phase complete","+100 XP"],["Badge unlocked","+50–200 XP"]].map(([a,b])=>(
             <div key={a} style={{background:C.dim,borderRadius:4,padding:"7px 9px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{a}</span>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>{a}</span>
               <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:C.gold,letterSpacing:".04em"}}>{b}</span>
             </div>
           ))}
@@ -2198,12 +2551,12 @@ export default function App() {
       </div>
 
       {/* Achievements — with rewards shown + all-badges reward */}
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:7}}>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:7}}>
         ACHIEVEMENTS — {unlockedCount}/{BADGES_DEF.length} UNLOCKED
       </div>
       {/* All-badges reward banner */}
       {allBadgesUnlocked ? (
-        <div className="pop" style={{background:`linear-gradient(135deg,${C.gold}18,${C.orange}12)`,border:`2px solid ${C.gold}`,borderRadius:8,padding:"13px 14px",marginBottom:10,textAlign:"center"}}>
+        <div className="pop" style={{background:`linear-gradient(135deg,${C.gold}18,${theme.accent}12)`,border:`2px solid ${C.gold}`,borderRadius:8,padding:"13px 14px",marginBottom:10,textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:4}}>🏆</div>
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:C.gold,letterSpacing:".06em",marginBottom:2}}>ALL BADGES COMPLETE</div>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,marginBottom:8}}>You've hit every milestone. Elite status achieved.</div>
@@ -2216,20 +2569,20 @@ export default function App() {
       ) : (
         <div style={{background:C.dim,border:`1px solid ${C.border}`,borderRadius:7,padding:"10px 12px",marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Complete all badges for</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>Complete all badges for</div>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:C.gold}}>🏆 +500 XP BONUS</div>
           </div>
           <div style={{height:4,background:"#1A1A26",borderRadius:2}}>
-            <div style={{height:4,width:`${(unlockedCount/BADGES_DEF.length)*100}%`,background:`linear-gradient(90deg,${C.gold},${C.orange})`,borderRadius:2,transition:"width .5s"}}/>
+            <div style={{height:4,width:`${(unlockedCount/BADGES_DEF.length)*100}%`,background:`linear-gradient(90deg,${C.gold},${theme.accent})`,borderRadius:2,transition:"width .5s"}}/>
           </div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginTop:4}}>{BADGES_DEF.length-unlockedCount} badge{BADGES_DEF.length-unlockedCount!==1?"s":""} remaining</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:4}}>{BADGES_DEF.length-unlockedCount} badge{BADGES_DEF.length-unlockedCount!==1?"s":""} remaining</div>
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:13}}>
         {BADGES_DEF.map(b=><BadgeCard key={b.label} b={b}/>)}
       </div>
 
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:7}}>RANK LADDER</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:7}}>RANK LADDER</div>
       {RANKS.map(r=>{
         const cur=r.name===rank.name, un=D.xp>=r.min, p=xpProg(D.xp);
         return <RankCard key={r.name} r={r} cur={cur} un={un} p={p} reward={RANK_REWARDS[r.name]}/>;
@@ -2249,32 +2602,32 @@ export default function App() {
         /* ── FREE PREVIEW ── */
         <div>
           <div style={{display:"flex",gap:0,marginBottom:12}}>
-            {[{w:"WK 1–2",p:"Foundation",c:C.orange},{w:"WK 3–4",p:"Overload",c:C.cyan},{w:"WK 5–6",p:"Peak",c:"#FF0040"}].map((ph,i)=>(
+            {[{w:"WK 1–2",p:"Foundation",c:theme.accent},{w:"WK 3–4",p:"Overload",c:C.cyan},{w:"WK 5–6",p:"Peak",c:"#FF0040"}].map((ph,i)=>(
               <div key={ph.w} style={{display:"flex",alignItems:"center",flex:1}}>
                 <div style={{flex:1,background:`${ph.c}12`,border:`1px solid ${ph.c}38`,borderRadius:5,padding:"8px 5px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:ph.c,letterSpacing:".06em"}}>{ph.w}</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:12,marginTop:1}}>{ph.p}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:ph.c,letterSpacing:".06em"}}>{ph.w}</div>
+                  <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:12,marginTop:1}}>{ph.p}</div>
                 </div>
                 {i<2&&<div style={{width:4,height:2,background:C.muted,flexShrink:0}}/>}
               </div>
             ))}
           </div>
-          <div style={{background:C.card,border:`1px solid ${C.orange}22`,borderRadius:8,padding:"13px 14px",marginBottom:10}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:9}}>WHAT'S INSIDE PRO</div>
+          <div style={{background:C.card,border:`1px solid ${theme.accent}22`,borderRadius:8,padding:"13px 14px",marginBottom:10}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:9}}>WHAT'S INSIDE PRO</div>
             {[["🏋️","6-Week Jump Program","3 progressive phases, 5 drills each"],["💪","Gym Splits (Push/Pull/Legs)","Synced to your jump phase"],["❄️","Recovery Days","Mobility, foam rolling, tendon care"],["⚡","Weekly Challenges","3 goals each week with XP rewards"],["🛡️","Streak Shield","1 free missed day per week"],["📊","Weekly Report","Every Sunday — sessions, gains, timeline"]].map(([ico,t,d])=>(
               <div key={t} style={{display:"flex",gap:10,marginBottom:9,alignItems:"flex-start"}}>
                 <span style={{fontSize:16,flexShrink:0}}>{ico}</span>
                 <div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,letterSpacing:".03em"}}>{t}</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,lineHeight:1.5}}>{d}</div>
+                  <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:16,letterSpacing:".03em"}}>{t}</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.5}}>{d}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{background:`${C.orange}09`,border:`1px solid ${C.orange}28`,borderRadius:7,padding:"10px 12px",marginBottom:11}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.6}}>Most users gain <strong style={{color:"#F0F0F0"}}>2–4 inches</strong> in 6 weeks with structured training vs ~0.5" with random workouts.</div>
+          <div style={{background:`${theme.accent}09`,border:`1px solid ${theme.accent}28`,borderRadius:7,padding:"10px 12px",marginBottom:11}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,lineHeight:1.6}}>Most users gain <strong style={{color:"#F0F0F0"}}>2–4 inches</strong> in 6 weeks with structured training vs ~0.5" with random workouts.</div>
           </div>
-          <button onClick={()=>setShowPro(true)} style={{width:"100%",background:`linear-gradient(135deg,${C.orange},#FF7A00)`,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <button onClick={()=>setShowPro(true)} style={{width:"100%",background:`linear-gradient(135deg,${theme.accent},#FF7A00)`,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             UNLOCK FULL PROGRAM
             <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.8}}>$4.99/mo · Cancel anytime</span>
           </button>
@@ -2290,7 +2643,7 @@ export default function App() {
               {id:"challenges",label:"CHALLENGES"},
               {id:"report", label:"WEEKLY REPORT"},
             ].map(t=>(
-              <button key={t.id} onClick={()=>setProTab(t.id)} style={{background:proTab===t.id?C.orange:"#111",color:proTab===t.id?"#000":"#555",border:`1px solid ${proTab===t.id?C.orange:C.border}`,fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".06em",padding:"6px 12px",borderRadius:4,whiteSpace:"nowrap",flexShrink:0,transition:"all .15s"}}>
+              <button key={t.id} onClick={()=>setProTab(t.id)} style={{background:proTab===t.id?theme.accent:"#111",color:proTab===t.id?"#000":"#B8B8D0",border:`1px solid ${proTab===t.id?theme.accent:C.border}`,fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".06em",padding:"6px 12px",borderRadius:4,whiteSpace:"nowrap",flexShrink:0,transition:"all .15s"}}>
                 {t.label}
               </button>
             ))}
@@ -2300,7 +2653,7 @@ export default function App() {
           {proTab==="program"&&(
             <div>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 11px",marginBottom:10}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,lineHeight:1.6}}>Each phase builds on the previous. Don't skip ahead — the foundation matters.</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.6}}>Each phase builds on the previous. Don't skip ahead — the foundation matters.</div>
               </div>
               <div style={{display:"flex",gap:0,marginBottom:12}}>
                 {PRO_WEEKS.map((w,i)=>{
@@ -2309,10 +2662,10 @@ export default function App() {
                   return (
                     <div key={i} style={{display:"flex",alignItems:"center",flex:1}}>
                       <button onClick={()=>{if(!prevPhaseDone){showT(`🔒 Finish ${PRO_WEEKS[i-1].phase} first`);return;}setProWeek(i);}}
-                        style={{flex:1,background:isActive?`${w.color}20`:prevPhaseDone?"#111":"#0A0A0E",border:`1px solid ${isActive?w.color:prevPhaseDone?C.border:"#1A1A22"}`,color:isActive?w.color:prevPhaseDone?"#555":"#5A5A68",borderRadius:5,padding:"8px 4px",textAlign:"center",transition:"all .15s",position:"relative"}}>
+                        style={{flex:1,background:isActive?`${w.color}20`:prevPhaseDone?"#111":"#0A0A0E",border:`1px solid ${isActive?w.color:prevPhaseDone?C.border:"#1A1A22"}`,color:isActive?w.color:prevPhaseDone?"#B8B8D0":"#5A5A68",borderRadius:5,padding:"8px 4px",textAlign:"center",transition:"all .15s",position:"relative"}}>
                         {!prevPhaseDone&&<span style={{fontSize:10,position:"absolute",top:4,right:5}}>🔒</span>}
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:".05em"}}>{w.week}</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:11,marginTop:1}}>{w.phase}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:".05em"}}>{w.week}</div>
+                        <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:14,marginTop:1}}>{w.phase}</div>
                       </button>
                       {i<PRO_WEEKS.length-1&&<div style={{width:4,height:2,background:C.border,flexShrink:0}}/>}
                     </div>
@@ -2322,7 +2675,7 @@ export default function App() {
               {(()=>{const w=PRO_WEEKS[proWeek];return(
                 <div>
                   <div style={{background:`${w.color}0E`,border:`1px solid ${w.color}33`,borderRadius:6,padding:"8px 11px",marginBottom:10}}>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:w.color,lineHeight:1.5}}>{w.note}</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:w.color,lineHeight:1.5}}>{w.note}</div>
                   </div>
                   {w.drills.map(d=>{const k=`pro-${proWeek}-${d.name}`,done=!!drillsDone[k];return(
                     <div key={k} className={done?"doneglow":""} style={{background:done?"#0A130D":C.card,border:`1px solid ${done?"#2A5A32":C.border}`,borderRadius:7,padding:"11px 12px",marginBottom:6,transition:"all .25s",opacity:done?0.85:1}}>
@@ -2330,10 +2683,11 @@ export default function App() {
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                             {done&&<span style={{fontSize:13,color:C.green}}>✓</span>}
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
+                            <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
                           </div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>{d.sets} × {d.reps}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:w.color,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>{d.sets} × {d.reps}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:w.color,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                          <DrillInstructions drill={d} accentColor={accentColor}/>
                         </div>
                         <button disabled={done} onClick={()=>{
                           if(done)return;
@@ -2341,7 +2695,7 @@ export default function App() {
                           const newDone={...drillsDone,[k]:true};setDrillsDone(newDone);
                           const allPhaseDone=w.drills.every(dr=>newDone[`pro-${proWeek}-${dr.name}`]);
                           if(allPhaseDone){const bk=`pro_phase_${proWeek}`;if(!(raw.proPhasesClaimed||[]).includes(bk)){mut(prev=>({...prev,xp:(prev.xp||0)+100,proPhasesClaimed:[...(prev.proPhasesClaimed||[]),bk]}));spawnXP(100);setTimeout(()=>triggerM(`${["FOUNDATION","OVERLOAD","PEAK"][proWeek]} COMPLETE 🏆`,`+100 XP · ${["Base is built. Move to Week 3–4.","Overload done. Peak week is your final push.","6 WEEKS COMPLETE. Go log your vertical."][proWeek]}`),300);}}
-                        }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#555",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".08em",transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
+                        }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#B8B8D0",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:12,letterSpacing:".08em",transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
                           {done?"✓ COMPLETED":"DONE"}
                         </button>
                       </div>
@@ -2352,7 +2706,7 @@ export default function App() {
                       <div style={{fontSize:26,marginBottom:5}}>{["🏗️","⚡","👑"][proWeek]}</div>
                       <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:C.green,letterSpacing:".06em",marginBottom:4}}>{["FOUNDATION COMPLETE","OVERLOAD COMPLETE","PROGRAM COMPLETE 🎉"][proWeek]}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.6,marginBottom:proWeek<2?8:0}}>{["Reactive base is built. Move to Week 3–4 when ready.","Strength done. Peak week is your final push.","All 6 weeks complete. Log your vertical now."][proWeek]}</div>
-                      {proWeek<PRO_WEEKS.length-1&&<button onClick={()=>setProWeek(proWeek+1)} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:".08em",padding:"9px 20px",borderRadius:5}}>START {["OVERLOAD PHASE →","PEAK PHASE →"][proWeek]}</button>}
+                      {proWeek<PRO_WEEKS.length-1&&<button onClick={()=>setProWeek(proWeek+1)} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:".08em",padding:"9px 20px",borderRadius:5}}>START {["OVERLOAD PHASE →","PEAK PHASE →"][proWeek]}</button>}
                     </div>
                   )}
                 </div>
@@ -2364,7 +2718,7 @@ export default function App() {
           {proTab==="gym"&&(
             <div>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:7,padding:"9px 12px",marginBottom:10}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,lineHeight:1.5}}>Gym training synced to your jump phase. Each phase gets heavier — don't skip Foundation.</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.5}}>Gym training synced to your jump phase. Each phase gets heavier — don't skip Foundation.</div>
               </div>
               {/* Phase selector with locks */}
               <div style={{display:"flex",gap:0,marginBottom:12}}>
@@ -2378,9 +2732,9 @@ export default function App() {
                       <button onClick={()=>{
                         if(!prevGymDone){showT(`🔒 Finish ${GYM_SPLITS[i-1].phase.split(" ")[0]} first`);return;}
                         setGymPhase(i);
-                      }} style={{flex:1,background:isActive?`${C.purple}22`:prevGymDone?"#111":"#0A0A0E",border:`1px solid ${isActive?C.purple:prevGymDone?C.border:"#1A1A22"}`,color:isActive?C.purple:prevGymDone?"#555":"#5A5A68",borderRadius:5,padding:"7px 4px",textAlign:"center",transition:"all .15s",position:"relative",fontSize:1}}>
+                      }} style={{flex:1,background:isActive?`${C.purple}22`:prevGymDone?"#111":"#0A0A0E",border:`1px solid ${isActive?C.purple:prevGymDone?C.border:"#1A1A22"}`,color:isActive?C.purple:prevGymDone?"#B8B8D0":"#5A5A68",borderRadius:5,padding:"7px 4px",textAlign:"center",transition:"all .15s",position:"relative",fontSize:1}}>
                         {!prevGymDone&&<span style={{fontSize:9,position:"absolute",top:3,right:4}}>🔒</span>}
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:".04em"}}>{g.phase.split("(")[0].trim()}</div>
+                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:".04em"}}>{g.phase.split("(")[0].trim()}</div>
                       </button>
                       {i<GYM_SPLITS.length-1&&<div style={{width:3,height:2,background:C.border,flexShrink:0}}/>}
                     </div>
@@ -2390,7 +2744,7 @@ export default function App() {
               {/* Push/Pull/Legs tabs */}
               <div style={{display:"flex",gap:5,marginBottom:12}}>
                 {["push","pull","legs"].map(s=>(
-                  <button key={s} onClick={()=>setGymSplit(s)} style={{flex:1,background:gymSplit===s?C.purple:"#111",color:gymSplit===s?"#FFF":"#555",border:`1px solid ${gymSplit===s?C.purple:C.border}`,fontFamily:"'Bebas Neue',sans-serif",fontSize:13,letterSpacing:".08em",padding:"8px 0",borderRadius:4,textTransform:"uppercase",transition:"all .15s"}}>
+                  <button key={s} onClick={()=>setGymSplit(s)} style={{flex:1,background:gymSplit===s?C.purple:"#111",color:gymSplit===s?"#FFF":"#B8B8D0",border:`1px solid ${gymSplit===s?C.purple:C.border}`,fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".08em",padding:"8px 0",borderRadius:4,textTransform:"uppercase",transition:"all .15s"}}>
                     {s}
                   </button>
                 ))}
@@ -2405,8 +2759,8 @@ export default function App() {
                 return (
                   <div>
                     <div style={{background:`${C.purple}12`,border:`1px solid ${C.purple}33`,borderRadius:7,padding:"9px 12px",marginBottom:10}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.purple,letterSpacing:".12em",marginBottom:2}}>{phase.phase}</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15}}>{split.name}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.purple,letterSpacing:".12em",marginBottom:2}}>{phase.phase}</div>
+                      <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18}}>{split.name}</div>
                     </div>
                     {split.drills.map((d,i)=>{
                       const k=`gym-${gymPhase}-${gymSplit}-${d.name}`,done=!!drillsDone[k];
@@ -2416,10 +2770,11 @@ export default function App() {
                             <div style={{flex:1}}>
                               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                                 {done&&<span style={{fontSize:13,color:C.green}}>✓</span>}
-                                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
+                                <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
                               </div>
-                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>{d.sets} × {d.reps}</div>
-                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.purple,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>{d.sets} × {d.reps}</div>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.purple,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                              <DrillInstructions drill={d} accentColor={accentColor}/>
                             </div>
                             <button disabled={done} onClick={()=>{
                               if(done)return;
@@ -2436,7 +2791,7 @@ export default function App() {
                                   `${phase.phase} complete. +100 XP. ${gymPhase<2?"Move to the next phase when ready.":"All gym phases complete. Your strength base is built."}`
                                 ),300);
                               }
-                            }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#555",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:9,transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
+                            }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#B8B8D0",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:9,transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
                               {done?"✓ DONE":"DONE"}
                             </button>
                           </div>
@@ -2477,19 +2832,19 @@ export default function App() {
               <div>
                 {/* Why it matters */}
                 <div style={{background:`${C.cyan}0C`,border:`1px solid ${C.cyan}33`,borderRadius:8,padding:"11px 13px",marginBottom:12}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.cyan,letterSpacing:".14em",marginBottom:4}}>WHY RECOVERY MATTERS</div>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,lineHeight:1.6}}>Tendons adapt slower than muscles. One recovery day per week prevents injury and lets your nervous system fully reset — which actually increases your vertical.</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.cyan,letterSpacing:".14em",marginBottom:4}}>WHY RECOVERY MATTERS</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,lineHeight:1.6}}>Tendons adapt slower than muscles. One recovery day per week prevents injury and lets your nervous system fully reset — which actually increases your vertical.</div>
                 </div>
 
                 {/* Header card */}
                 <div style={{background:C.card,border:`1px solid ${C.cyan}33`,borderRadius:8,padding:"11px 13px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:C.cyan,letterSpacing:".05em",marginBottom:2}}>{RECOVERY_DAYS[0].title}</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>{RECOVERY_DAYS[0].est} · resets daily · +40 XP on completion</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted}}>{RECOVERY_DAYS[0].est} · resets daily · +40 XP on completion</div>
                   </div>
                   <div style={{textAlign:"center",background:C.dim,borderRadius:6,padding:"6px 10px",minWidth:44}}>
                     <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:allRecDone?C.green:C.cyan,lineHeight:1}}>{doneCount}/{recDrills.length}</div>
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginTop:1}}>DONE</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginTop:1}}>DONE</div>
                   </div>
                 </div>
 
@@ -2507,15 +2862,16 @@ export default function App() {
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                             {done&&<span style={{fontSize:13,color:C.green}}>✓</span>}
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
+                            <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18,color:done?C.green:"#F0F0F0"}}>{d.name}</div>
                           </div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted}}>{d.sets} × {d.reps}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.cyan,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>{d.sets} × {d.reps}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.cyan,marginTop:3,opacity:.9}}>💡 {d.tip}</div>
+                          <DrillInstructions drill={d} accentColor={accentColor}/>
                         </div>
                         <button disabled={done} onClick={()=>{
                           if(done)return;
                           setDrillsDone(s=>({...s,[k]:true}));
-                        }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#555",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:9,transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
+                        }} style={{background:done?C.green:C.dim,border:`1px solid ${done?C.green:C.border}`,color:done?"#000":"#555",borderRadius:5,padding:"7px 10px",fontFamily:"'DM Mono',monospace",fontSize:12,transition:"all .15s",flexShrink:0,cursor:done?"default":"pointer"}}>
                           {done?"✓ DONE":"DONE"}
                         </button>
                       </div>
@@ -2541,9 +2897,9 @@ export default function App() {
 
                 {/* Sleep & recovery tips */}
                 <div style={{background:C.dim,borderRadius:7,padding:"10px 12px",marginTop:12}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".12em",marginBottom:6}}>RECOVERY REMINDERS</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".12em",marginBottom:6}}>RECOVERY REMINDERS</div>
                   {["8+ hours of sleep — vertical gains happen at night, not in the gym.","Drink 2–3L of water daily, especially on training days.","Protein: 0.7–1g per lb of bodyweight. Muscles repair while you sleep.","No intense jump training 2 days in a row during peak phase."].map((tip,i)=>(
-                    <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,lineHeight:1.6,paddingLeft:10,position:"relative",marginBottom:2}}>
+                    <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.6,paddingLeft:10,position:"relative",marginBottom:2}}>
                       <span style={{position:"absolute",left:0,color:C.cyan}}>·</span>{tip}
                     </div>
                   ))}
@@ -2555,8 +2911,8 @@ export default function App() {
           {/* ── WEEKLY CHALLENGES TAB ── */}
           {proTab==="challenges"&&(
             <div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:4}}>WEEK {getWeekNumber()} CHALLENGES</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:12}}>3 goals every week. Resets Monday.</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:4}}>WEEK {getWeekNumber()} CHALLENGES</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,marginBottom:12}}>3 goals every week. Resets Monday.</div>
               {weeklyChallenges.map((ch)=>{
                 const completed = ch.check(raw);
                 const claimed   = claimedWC.includes(ch.id);
@@ -2581,22 +2937,22 @@ export default function App() {
                       <div style={{display:"flex",gap:10,alignItems:"center"}}>
                         <span style={{fontSize:20}}>{ch.icon}</span>
                         <div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,color:claimed?C.green:"#F0F0F0"}}>{ch.label}</div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>+{ch.xp} XP on completion</div>
+                          <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:18,color:claimed?C.green:"#F0F0F0"}}>{ch.label}</div>
+                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>+{ch.xp} XP on completion</div>
                         </div>
                       </div>
                       {!claimed && completed && (
                         <button onClick={()=>{
                           mut(prev=>({...prev,[weekKey]:[...(prev[weekKey]||[]),ch.id],xp:(prev.xp||0)+ch.xp}));
                           spawnXP(ch.xp); showT(`✓ Challenge complete! +${ch.xp} XP`);
-                        }} style={{background:C.green,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:12,letterSpacing:".08em",padding:"7px 13px",borderRadius:4,flexShrink:0}}>CLAIM</button>
+                        }} style={{background:C.green,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:".08em",padding:"7px 13px",borderRadius:4,flexShrink:0}}>CLAIM</button>
                       )}
-                      {claimed && <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.green,flexShrink:0}}>✓ CLAIMED</span>}
+                      {claimed && <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.green,flexShrink:0}}>✓ CLAIMED</span>}
                       {!claimed && !completed && <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,flexShrink:0}}>{progress}%</span>}
                     </div>
                     {/* Real progress bar */}
                     <div style={{height:3,background:C.dim,borderRadius:2}}>
-                      <div style={{height:3,width:`${progress}%`,background:claimed||completed?C.green:C.orange,borderRadius:2,transition:"width .5s"}}/>
+                      <div style={{height:3,width:`${progress}%`,background:claimed||completed?C.green:theme.accent,borderRadius:2,transition:"width .5s"}}/>
                     </div>
                   </div>
                 );
@@ -2604,7 +2960,7 @@ export default function App() {
               {/* Streak Shield */}
               <div style={{marginTop:16}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:8}}>STREAK SHIELD</div>
-                <div style={{background:shieldAvailable?`${C.orange}12`:shieldUsed?"#0A0A0E":C.card,border:`1px solid ${shieldAvailable?C.orange+"44":shieldUsed?C.border:C.border}`,borderRadius:8,padding:"12px 13px"}}>
+                <div style={{background:shieldAvailable?`${theme.accent}12`:shieldUsed?"#0A0A0E":C.card,border:`1px solid ${shieldAvailable?theme.accent+"44":shieldUsed?C.border:C.border}`,borderRadius:8,padding:"12px 13px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:".05em",marginBottom:3}}>
@@ -2618,7 +2974,7 @@ export default function App() {
                       <button onClick={()=>{
                         mut(prev=>({...prev,shieldUsedWeek:getWeekNumber(),activeDays:[...(prev.activeDays||[]),today()]}));
                         showT("🛡️ Shield used — streak protected!");
-                      }} style={{background:C.orange,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".08em",padding:"8px 12px",borderRadius:4,flexShrink:0,marginLeft:10}}>USE</button>
+                      }} style={{background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".08em",padding:"8px 12px",borderRadius:4,flexShrink:0,marginLeft:10}}>USE</button>
                     )}
                   </div>
                 </div>
@@ -2629,35 +2985,35 @@ export default function App() {
           {/* ── WEEKLY REPORT TAB ── */}
           {proTab==="report"&&(
             <div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".14em",marginBottom:12}}>GENERATED WEEKLY — UPDATES EVERY SUNDAY</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:12}}>GENERATED WEEKLY — UPDATES EVERY SUNDAY</div>
               {/* Hero stat */}
-              <div style={{background:`linear-gradient(135deg,#0D0D16,${C.orange}12)`,border:`1px solid ${C.orange}33`,borderRadius:10,padding:"16px 15px",marginBottom:12,textAlign:"center"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".16em",marginBottom:6}}>WEEK {getWeekNumber()} SUMMARY</div>
+              <div style={{background:`linear-gradient(135deg,#0D0D16,${theme.accent}12)`,border:`1px solid ${theme.accent}33`,borderRadius:10,padding:"16px 15px",marginBottom:12,textAlign:"center"}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:theme.accent,letterSpacing:".16em",marginBottom:6}}>WEEK {getWeekNumber()} SUMMARY</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
                   {[
                     {l:"SESSIONS",  v:`${weeklyReport.wkSessions}`, c:weeklyReport.wkSessions>=4?C.green:weeklyReport.wkSessions>=2?C.gold:C.red},
                     {l:"VERT GAIN", v:weeklyReport.wkGain!=null?`${weeklyReport.wkGain>0?"+":""}${weeklyReport.wkGain}"`:"—", c:weeklyReport.wkGain&&weeklyReport.wkGain>0?C.green:C.muted},
-                    {l:"CONSISTENCY",v:weeklyReport.consistency, c:weeklyReport.consistency==="Elite"?C.gold:weeklyReport.consistency==="Strong"?C.green:weeklyReport.consistency==="Decent"?C.orange:C.red},
+                    {l:"CONSISTENCY",v:weeklyReport.consistency, c:weeklyReport.consistency==="Elite"?C.gold:weeklyReport.consistency==="Strong"?C.green:weeklyReport.consistency==="Decent"?theme.accent:C.red},
                   ].map(s=>(
                     <div key={s.l} style={{background:C.dim,borderRadius:6,padding:"9px 0"}}>
                       <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:s.c,lineHeight:1}}>{s.v}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginTop:2,letterSpacing:".1em"}}>{s.l}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,marginTop:2,letterSpacing:".1em"}}>{s.l}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",background:C.dim,borderRadius:6,padding:"9px 12px"}}>
-                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Est. dunk timeline</div>
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Est. dunk timeline</div>
                   <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,color:C.gold}}>~{snap.wkEst} weeks</div>
                 </div>
               </div>
               {/* Coach assessment */}
-              <div style={{background:`${C.orange}0C`,border:`1px solid ${C.orange}28`,borderRadius:8,padding:"12px 13px",marginBottom:12}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.orange,letterSpacing:".12em",marginBottom:4}}>🤖 COACH ASSESSMENT</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,fontSize:15,color:"#EEE",lineHeight:1.5}}>{weeklyReport.assessment}</div>
+              <div style={{background:`${theme.accent}0C`,border:`1px solid ${theme.accent}28`,borderRadius:8,padding:"12px 13px",marginBottom:12}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:theme.accent,letterSpacing:".12em",marginBottom:4}}>🤖 COACH ASSESSMENT</div>
+                <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:600,fontSize:18,color:"#EEE",lineHeight:1.5}}>{weeklyReport.assessment}</div>
               </div>
               {/* Next week focus */}
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 13px"}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,letterSpacing:".12em",marginBottom:8}}>NEXT WEEK — FOCUS AREAS</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".12em",marginBottom:8}}>NEXT WEEK — FOCUS AREAS</div>
                 {[
                   weeklyReport.wkSessions<4&&"Increase to 4+ sessions — consistency is the bottleneck",
                   !lastVert&&"Log your vertical — you need data to measure progress",
@@ -2665,8 +3021,8 @@ export default function App() {
                   D.streak<7&&"Build toward a 7-day streak for the bonus XP",
                   gap>10&&"Focus on Jump Training days — vert gains need plyometric work",
                 ].filter(Boolean).slice(0,3).map((f,i)=>(
-                  <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,lineHeight:1.6,paddingLeft:12,position:"relative",marginBottom:4}}>
-                    <span style={{position:"absolute",left:0,color:C.orange}}>›</span>{f}
+                  <div key={i} style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,lineHeight:1.6,paddingLeft:12,position:"relative",marginBottom:4}}>
+                    <span style={{position:"absolute",left:0,color:theme.accent}}>›</span>{f}
                   </div>
                 ))}
                 {[weeklyReport.wkSessions>=4,!!lastVert,weeklyReport.wkGain!==null].every(Boolean)&&(
@@ -2680,8 +3036,55 @@ export default function App() {
     </div>
   );
 
-  const VIEWS = {home:HomeView, train:TrainView, track:TrackView, rank:RankView, program:ProgramView};
-  const NAV   = [{id:"home",icon:"⬡",label:"HOME"},{id:"train",icon:"▣",label:"TRAIN"},{id:"track",icon:"◉",label:"TRACK"},{id:"rank",icon:"⭐",label:"RANK"},{id:"program",icon:"🔥",label:"PROGRAM"}];
+  const SettingsView = (
+    <div className="fade">
+      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:".06em",marginBottom:4}}>SETTINGS</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:20}}>Customize your Dunk Lab experience</div>
+      
+      {/* Theme Section */}
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted,letterSpacing:".12em",marginBottom:12}}>THEME</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.label,marginBottom:8}}>Accent Color</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
+          {Object.entries(ACCENT_COLORS).map(([key,color]) => (
+            <button
+              key={key}
+              onClick={()=>setAccentColor(key)}
+              style={{
+                background:accentColor===key ? `${color}18` : C.dim,
+                border:`1px solid ${accentColor===key ? color : C.border}`,
+                borderRadius:6,
+                padding:"12px",
+                display:"flex",
+                alignItems:"center",
+                gap:10,
+                cursor:"pointer",
+                transition:"all .15s"
+              }}
+            >
+              <div style={{width:24,height:24,borderRadius:"50%",background:color,flexShrink:0}}/>
+              <div style={{textAlign:"left"}}>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:accentColor===key ? color : C.muted,letterSpacing:".04em"}}>{THEME_NAMES[key]}</div>
+                {accentColor===key && (
+                  <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:color,marginTop:2}}>Selected</div>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Info Section */}
+      <div style={{background:`${C.dim}`,borderRadius:8,padding:"12px 14px"}}>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.label,lineHeight:1.6}}>
+          Theme preference is saved automatically. Light mode coming soon.
+        </div>
+      </div>
+    </div>
+  );
+
+  const VIEWS = {home:HomeView, train:TrainView, track:TrackView, rank:RankView, program:ProgramView, settings:SettingsView};
+  const NAV   = [{id:"home",icon:"⬡",label:"HOME"},{id:"train",icon:"▣",label:"TRAIN"},{id:"track",icon:"◉",label:"TRACK"},{id:"rank",icon:"⭐",label:"RANK"},{id:"program",icon:"🔥",label:"PROGRAM"},{id:"settings",icon:"⚙️",label:"SETTINGS"}];
 
   function resetAllData() {
     try {
@@ -2696,21 +3099,21 @@ export default function App() {
       {/* Top bar */}
       <div style={{borderBottom:`1px solid ${C.border}`,padding:"0 13px",height:46,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:C.bg,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <div style={{width:4,height:20,background:C.orange,borderRadius:2}}/>
+          <div style={{width:4,height:20,background:theme.accent,borderRadius:2}}/>
           <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".14em"}}>DUNK LAB</span>
-          {D.isPro&&<span style={{background:C.orange,color:"#000",fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:500,padding:"2px 5px",borderRadius:2,letterSpacing:".08em"}}>PRO</span>}
+          {D.isPro&&<span style={{background:theme.accent,color:"#000",fontFamily:"'DM Mono',monospace",fontSize:8,fontWeight:500,padding:"2px 5px",borderRadius:2,letterSpacing:".08em"}}>PRO</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <div style={{display:"flex",alignItems:"center",gap:3,background:`${rank.color}18`,border:`1px solid ${rank.color}40`,borderRadius:20,padding:"2px 8px"}}>
             <span style={{fontSize:11}}>{rank.icon}</span>
             <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:11,color:rank.color,letterSpacing:".06em"}}>{rank.name}</span>
           </div>
-          {D.streak>0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.orange}}>🔥{D.streak}</span>}
+          {D.streak>0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:theme.accent}}>🔥{D.streak}</span>}
           <button onClick={resetAllData} style={{background:"none",border:`1px solid #2A2A3A`,color:"#3A3A52",fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:".06em",padding:"3px 7px",borderRadius:4}}>RESET</button>
         </div>
       </div>
       {/* Toast */}
-      {toast&&<div className="fade" style={{position:"fixed",top:54,left:"50%",transform:"translateX(-50%)",background:"#12121E",border:`1px solid ${C.orange}`,color:"#F0F0F0",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"8px 15px",borderRadius:4,zIndex:300,whiteSpace:"nowrap",letterSpacing:".06em"}}>{toast}</div>}
+      {toast&&<div className="fade" style={{position:"fixed",top:54,left:"50%",transform:"translateX(-50%)",background:"#12121E",border:`1px solid ${theme.accent}`,color:"#F0F0F0",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"8px 15px",borderRadius:4,zIndex:300,whiteSpace:"nowrap",letterSpacing:".06em"}}>{toast}</div>}
       {/* Content — key forces clean fade-in on every tab switch */}
       <div style={{maxWidth:500,margin:"0 auto",padding:"15px 13px"}}>
         <div key={view} className="fade">{VIEWS[view]}</div>
@@ -2718,14 +3121,14 @@ export default function App() {
       {/* Bottom nav */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0A0A12",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:`repeat(${NAV.length},1fr)`,height:56,zIndex:50}}>
         {NAV.map(({id,icon,label})=>(
-          <button key={id} onClick={()=>setView(id)} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:view===id?C.orange:"#2C2C3E",transition:"color .15s"}}>
+          <button key={id} onClick={()=>setView(id)} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:view===id?theme.accent:"#2C2C3E",transition:"color .15s"}}>
             <span style={{fontSize:14,lineHeight:1}}>{icon}</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,letterSpacing:".06em"}}>{label}</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".06em"}}>{label}</span>
           </button>
         ))}
       </div>
-      {showPro&&<ProModal onClose={()=>setShowPro(false)} onUpgrade={upgrade} gap={gap} wkSess={wkSess}/>}
-      {milestone&&<Milestone msg={milestone.msg} sub={milestone.sub} onClose={()=>setMilestone(null)}/>}
+      {showPro&&<ProModal onClose={()=>setShowPro(false)} onUpgrade={upgrade} gap={gap} wkSess={wkSess} accentColor={accentColor}/>}
+      {milestone&&<Milestone msg={milestone.msg} sub={milestone.sub} onClose={()=>setMilestone(null)} accentColor={accentColor}/>}
     </div>
   );
 }
