@@ -931,7 +931,7 @@ function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
         {/* MOST POPULAR badge + CTA */}
         <div style={{position:"relative"}}>
           <div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:C.gold,color:"#000",fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:".12em",padding:"2px 12px",borderRadius:20,whiteSpace:"nowrap"}}>MOST POPULAR</div>
-          <button onClick={onUpgrade} className="press" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"18px 0 16px",borderRadius:7,display:"block",marginBottom:7}}>
+          <button onClick={onUpgrade} className="press" style={{width:"100%",background:accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"18px 0 16px",borderRadius:7,display:"block",marginBottom:7}}>
             START TRAINING SMARTER — $4.99/MO
           </button>
         </div>
@@ -942,7 +942,8 @@ function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
 }
 
 // ─── DUNK CALC ────────────────────────────────────────────────────────────────
-function DunkCalc({onStart}) {
+function DunkCalc({onStart, accentColor}) {
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [h,setH]=useState(""); const [v,setV]=useState(""); const [res,setRes]=useState(null);
   function calc() {
     const hi=parseFloat(h), vi=parseFloat(v); if (!hi||!vi) return;
@@ -960,35 +961,35 @@ function DunkCalc({onStart}) {
       {!res ? (
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:16}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:theme.accent,letterSpacing:".16em",marginBottom:12}}>CAN YOU DUNK? — 10 SECONDS</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:accent,letterSpacing:".16em",marginBottom:12}}>CAN YOU DUNK? — 10 SECONDS</div>
             <div style={{display:"flex",gap:10}}>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
-                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?theme.accent:C.border}}/>
+                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?accent:C.border}}/>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>5'5"=65 · 5'10"=70 · 6'=72</div>
               </div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>VERTICAL (inches)</div>
-                <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?theme.accent:C.border}}/>
+                <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?accent:C.border}}/>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
               </div>
             </div>
           </div>
-          <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?theme.accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
+          <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
         </div>
       ) : (
         <div className="pop" style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{background:`linear-gradient(160deg,#0D0D16,${res.g===0?"#0A160D":"#150A06"})`,border:`1px solid ${res.g===0?C.green:theme.accent}`,borderRadius:10,padding:"20px 16px",textAlign:"center"}}>
+          <div style={{background:`linear-gradient(160deg,#0D0D16,${res.g===0?"#0A160D":"#150A06"})`,border:`1px solid ${res.g===0?C.green:accent}`,borderRadius:10,padding:"20px 16px",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:8}}>{res.g===0?"👑":res.lv.icon}</div>
             {res.g===0 ? (
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,color:C.green}}>YOU CAN DUNK!</div>
             ) : (
               <>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,letterSpacing:".14em",marginBottom:4}}>YOU ARE</div>
-                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:56,color:theme.accent,letterSpacing:".04em",lineHeight:1}}>{res.g}"</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:56,color:accent,letterSpacing:".04em",lineHeight:1}}>{res.g}"</div>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:18,color:"#EEEEEE",letterSpacing:".06em",marginBottom:12}}>FROM DUNKING</div>
                 <div style={{height:8,background:C.dim,borderRadius:4,marginBottom:5}}>
-                  <div style={{height:8,width:`${res.pct}%`,background:`linear-gradient(90deg,${theme.accent},#FF8000)`,borderRadius:4}}/>
+                  <div style={{height:8,width:`${res.pct}%`,background:`linear-gradient(90deg,${accent},#FF8000)`,borderRadius:4}}/>
                 </div>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>{res.pct}% there · ~{res.wk} weeks with consistent training</div>
               </>
@@ -1015,7 +1016,7 @@ function DunkCalc({onStart}) {
               })}
             </div>
           )}
-          <button onClick={()=>onStart(res)} className="glowbtn" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <button onClick={()=>onStart(res)} className="glowbtn" style={{width:"100%",background:accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             START MY PROGRAM →
             <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#000000"}}>FREE · 30 SECONDS</span>
           </button>
@@ -1027,7 +1028,8 @@ function DunkCalc({onStart}) {
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
-function Onboarding({calcRes,onComplete}) {
+function Onboarding({calcRes,onComplete, accentColor}) {
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [step,setStep]=useState(0);
   const initialLevel = calcRes ? (LEVELS.slice().reverse().find(l=>calcRes.v>=l.vert)||LEVELS[0]).id : 3;
   const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner"});
@@ -1045,28 +1047,28 @@ function Onboarding({calcRes,onComplete}) {
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:14,display:"flex",flexDirection:"column",gap:10}}>
               <div>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>YOUR NAME</div>
-                <input type="text" placeholder="ENTER NAME" value={d.name} onChange={e=>setD(x=>({...x,name:e.target.value.toUpperCase()}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.name?theme.accent:C.border}}/>
+                <input type="text" placeholder="ENTER NAME" value={d.name} onChange={e=>setD(x=>({...x,name:e.target.value.toUpperCase()}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.name?accent:C.border}}/>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>AGE</div>
-                  <input type="number" min="10" max="50" placeholder="—" value={d.age} onChange={e=>setD(x=>({...x,age:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.age?theme.accent:C.border}}/>
+                  <input type="number" min="10" max="50" placeholder="—" value={d.age} onChange={e=>setD(x=>({...x,age:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.age?accent:C.border}}/>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
-                  <input type="number" min="48" max="96" placeholder="66" value={d.height} onChange={e=>setD(x=>({...x,height:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.height?theme.accent:C.border}}/>
+                  <input type="number" min="48" max="96" placeholder="66" value={d.height} onChange={e=>setD(x=>({...x,height:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.height?accent:C.border}}/>
                 </div>
               </div>
               <div>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>EXPERIENCE</div>
                 <div style={{display:"flex",gap:6}}>
                   {["beginner","intermediate","advanced"].map(s=>(
-                    <button key={s} onClick={()=>setD(x=>({...x,skill:s}))} style={{flex:1,background:d.skill===s?`${theme.accent}20`:"#0C0C14",border:`1px solid ${d.skill===s?theme.accent:C.border}`,color:d.skill===s?theme.accent:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".04em",padding:"9px 0",borderRadius:5,textTransform:"capitalize"}}>{s}</button>
+                    <button key={s} onClick={()=>setD(x=>({...x,skill:s}))} style={{flex:1,background:d.skill===s?`${accent}20`:"#0C0C14",border:`1px solid ${d.skill===s?accent:C.border}`,color:d.skill===s?accent:"#B8B8D0",fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".04em",padding:"9px 0",borderRadius:5,textTransform:"capitalize"}}>{s}</button>
                   ))}
                 </div>
               </div>
             </div>
-            <button onClick={()=>setStep(1)} disabled={!ok0} style={{width:"100%",background:ok0?theme.accent:"#111",color:ok0?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,opacity:ok0?1:.5}}>NEXT →</button>
+            <button onClick={()=>setStep(1)} disabled={!ok0} style={{width:"100%",background:ok0?accent:"#111",color:ok0?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:".1em",padding:"14px 0",borderRadius:7,opacity:ok0?1:.5}}>NEXT →</button>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,textAlign:"center"}}>30 seconds · no account needed</div>
           </div>
         )}
@@ -1078,7 +1080,7 @@ function Onboarding({calcRes,onComplete}) {
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:34,letterSpacing:".04em",lineHeight:1.1,marginBottom:4}}>WHERE ARE YOU NOW?</div>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Honest answer = better workouts.</div>
               {parseFloat(d.height) > 0 ? (
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:theme.accent,marginTop:5}}>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,marginTop:5}}>
                   Standing reach at {d.height}": ~{Math.round(parseFloat(d.height)*1.335)}" — verticals calculated for your height
                 </div>
               ) : (
@@ -1130,7 +1132,7 @@ function Onboarding({calcRes,onComplete}) {
                 </div>
               );
             })()}
-            <button onClick={()=>onComplete(d)} className="glowbtn" style={{width:"100%",background:theme.accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:19,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <button onClick={()=>onComplete(d)} className="glowbtn" style={{width:"100%",background:accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:19,letterSpacing:".1em",padding:"14px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
               BUILD MY PROGRAM
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,opacity:.7}}>YOUR FIRST WORKOUT IS READY</span>
             </button>
@@ -1788,7 +1790,7 @@ export default function App() {
   if (screen==="calc") return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center"}}>
       <div style={{maxWidth:440,margin:"0 auto",padding:"28px 16px",width:"100%"}}>
-        <DunkCalc onStart={res=>{setCalcRes(res);setScreen("onboard");}}/>
+        <DunkCalc onStart={res=>{setCalcRes(res);setScreen("onboard");}} accentColor={accentColor}/>
       </div>
     </div>
   );
@@ -1798,7 +1800,7 @@ export default function App() {
       const vl = calcRes ? [{v:calcRes.v,date:today()}] : [];
       const nd = {name:d.name,age:d.age,height:d.height,level:d.level,skill:d.skill,xp:0,activeDays:[],vertLogs:vl,sprints:[],chDates:[],isPro:false};
       save(nd); setRaw(nd); setScreen("app");
-    }}/>
+    }} accentColor={accentColor}/>
   );
 
   // ── HOME ──────────────────────────────────────────────────────────────────
