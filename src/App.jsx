@@ -20,13 +20,13 @@ const THEME_NAMES = {
 const getWorkoutColors = (accentColor) => {
   const base = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   
-  // For orange theme, keep original behavior
+  // For orange theme, keep original behavior but swap vertical to blue
   if (accentColor === "orange") {
     return {
       jump: C.orange,
       strength: C.purple,
       speed: C.gold,
-      vertical: C.cyan,
+      vertical: "#0077D6",  // Blue
     };
   }
   
@@ -37,25 +37,25 @@ const getWorkoutColors = (accentColor) => {
       jump: base,              // #00D4FF - main accent
       strength: "#0066CC",    // darker blue
       speed: "#66E0FF",        // lighter blue
-      vertical: "#004080",     // very dark blue
+      vertical: "#00D4FF",     // Cyan instead of very dark blue
     };
   }
   
   if (accentColor === "purple") {
     return {
       jump: base,              // #8B5CF6 - main accent
-      strength: "#6D28D9",     // darker purple
-      speed: "#A78BFA",        // lighter purple
-      vertical: "#4C1D95",     // very dark purple
+      strength: "#8B5CF6",     // brighter purple (same as accent for consistency)
+      speed: "#C4B5FD",        // lighter purple
+      vertical: "#7C3AED",     // medium purple (brighter than before)
     };
   }
   
   if (accentColor === "green") {
     return {
       jump: base,              // #38B56A - main accent
-      strength: "#1E7B4A",     // darker green
+      strength: "#38B56A",     // brighter green (same as accent for consistency)
       speed: "#6EE7B7",        // lighter green
-      vertical: "#0F5132",     // very dark green
+      vertical: "#10B981",     // medium green (brighter than before)
     };
   }
   
@@ -3123,7 +3123,7 @@ export default function App() {
       {/* Bottom nav */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0A0A12",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:`repeat(${NAV.length},1fr)`,height:56,zIndex:50}}>
         {NAV.map(({id,icon,label})=>(
-          <button key={id} onClick={()=>setView(id)} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:view===id?theme.accent:"#2C2C3E",transition:"color .15s"}}>
+          <button key={id} onClick={()=>setView(id)} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:view===id?theme.accent:"#B8B8D0",transition:"color .15s"}}>
             <span style={{fontSize:14,lineHeight:1}}>{icon}</span>
             <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:".06em"}}>{label}</span>
           </button>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 const G = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700&display=swap');
@@ -2760,6 +2761,7 @@ export default function App() {
       </div>
       {showPro&&<ProModal onClose={()=>setShowPro(false)} onUpgrade={upgrade} gap={gap} wkSess={wkSess}/>}
       {milestone&&<Milestone msg={milestone.msg} sub={milestone.sub} onClose={()=>setMilestone(null)}/>}
+      <Analytics />
     </div>
   );
 }
