@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 // Accent color options
 const ACCENT_COLORS = {
@@ -3131,6 +3132,7 @@ export default function App() {
       </div>
       {showPro&&<ProModal onClose={()=>setShowPro(false)} onUpgrade={upgrade} gap={gap} wkSess={wkSess} accentColor={accentColor}/>}
       {milestone&&<Milestone msg={milestone.msg} sub={milestone.sub} onClose={()=>setMilestone(null)} accentColor={accentColor}/>}
+      <Analytics />
     </div>
   );
 }
