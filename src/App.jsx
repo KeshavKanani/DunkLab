@@ -2524,9 +2524,9 @@ export default function App() {
     {icon:"🏀",label:"FIRST SESSION",  unlocked:D.sessions>=1,   desc:"Complete first workout",       reward:"+50 XP on unlock"},
     {icon:"🔥",label:"3-DAY STREAK",   unlocked:D.streak>=3,     desc:"Train 3 days in a row",         reward:"+75 XP on unlock"},
     {icon:"⚡",label:"WEEK WARRIOR",   unlocked:D.streak>=7,     desc:"7-day training streak",         reward:"+100 XP on unlock"},
-    {icon:"🤙",label:"TOUCHES RIM",    unlocked:D.vertLogs.some(v=>v.v>=24), desc:"Vertical reaches 24\"",  reward:"+75 XP on unlock"},
-    {icon:"💥",label:"GOT HOPS",       unlocked:D.vertLogs.some(v=>v.v>=28), desc:"Vertical reaches 28\"",  reward:"+100 XP on unlock"},
-    {icon:"👑",label:"DUNKER",         unlocked:D.vertLogs.some(v=>v.v>=32), desc:"Can dunk",               reward:"+200 XP on unlock"},
+    {icon:"🤙",label:"TOUCHES RIM",    unlocked:D.vertLogs.some(v=>v.v>=levelVert(4,D.height,D.standingReach)), desc:`Vertical reaches ~${levelVert(4,D.height,D.standingReach)}\"`,  reward:"+75 XP on unlock"},
+    {icon:"💥",label:"GOT HOPS",       unlocked:D.vertLogs.some(v=>v.v>=levelVert(6,D.height,D.standingReach)), desc:`Vertical reaches ~${levelVert(6,D.height,D.standingReach)}\"`,  reward:"+100 XP on unlock"},
+    {icon:"👑",label:"DUNKER",         unlocked:D.vertLogs.some(v=>v.v>=levelVert(8,D.height,D.standingReach)), desc:"Can dunk",               reward:"+200 XP on unlock"},
     {icon:"💪",label:"10 SESSIONS",    unlocked:D.sessions>=10,  desc:"10 workouts completed",         reward:"+100 XP on unlock"},
     {icon:"🌟",label:"PRO MEMBER",     unlocked:D.isPro,         desc:"Upgraded to Pro",               reward:"+75 XP on unlock"},
   ];
