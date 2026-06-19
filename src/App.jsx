@@ -315,8 +315,8 @@ function xpProg(xp) {
   return {pct:Math.round(((xp-RANKS[i-1].min)/(RANKS[i].min-RANKS[i-1].min))*100), needed:RANKS[i].min-xp, next:RANKS[i].name};
 }
 const sReach    = h => Math.round(h * 1.335);
-const gapFn     = (h,v) => Math.max(0, 120 - sReach(h) - v);
-const dunkPctFn = (h,v) => { const denom = 120-sReach(h); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
+const gapFn     = (h,v,standingReach) => Math.max(0, 120 - (standingReach || sReach(h)) - v);
+const dunkPctFn = (h,v,standingReach) => { const denom = 120-(standingReach || sReach(h)); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
 const weeksEst  = g => g <= 0 ? 0 : Math.ceil(g / 0.32);
 
 function RankCard({r,cur,un,p,reward}) {
@@ -439,12 +439,13 @@ function snapshot(raw) {
   const days  = raw.activeDays || [];
   const verts = raw.vertLogs   || [];
   const h     = parseFloat(raw.height) || 66;
+  const sr    = raw.standingReach ? parseFloat(raw.standingReach) : null;
   const lvId  = raw.level || 3;
   const curLvVert = (LEVELS.find(l => l.id === lvId) || LEVELS[2]).vert;
   const lastV  = verts.length ? verts[verts.length-1].v : null;
   const bestV  = verts.length ? Math.max(...verts.map(v => v.v)) : null;
   const effV   = lastV || curLvVert;
-  const gap    = gapFn(h, effV);
+  const gap    = gapFn(h, effV, sr);
   const streak = calcStreak(days);
   const sessions = days.length;
 
@@ -944,12 +945,12 @@ function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
 // ─── DUNK CALC ────────────────────────────────────────────────────────────────
 function DunkCalc({onStart, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
-  const [h,setH]=useState(""); const [v,setV]=useState(""); const [res,setRes]=useState(null);
+  const [h,setH]=useState(""); const [v,setV]=useState(""); const [sr,setSr]=useState(""); const [res,setRes]=useState(null);
   function calc() {
-    const hi=parseFloat(h), vi=parseFloat(v); if (!hi||!vi) return;
-    const g=gapFn(hi,vi), pct=dunkPctFn(hi,vi), wk=weeksEst(g);
+    const hi=parseFloat(h), vi=parseFloat(v), sri=sr?parseFloat(sr):null; if (!hi||!vi) return;
+    const g=gapFn(hi,vi,sri), pct=dunkPctFn(hi,vi,sri), wk=weeksEst(g);
     const lv=LEVELS.slice().reverse().find(l=>vi>=l.vert)||LEVELS[0];
-    setRes({g,pct,wk,lv,h:hi,v:vi});
+    setRes({g,pct,wk,lv,h:hi,v:vi,standingReach:sri});
   }
   return (
     <div className="fade">
@@ -973,6 +974,11 @@ function DunkCalc({onStart, accentColor}) {
                 <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?accent:C.border}}/>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
               </div>
+            </div>
+            <div style={{marginTop:10}}>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>STANDING REACH (inches)</div>
+              <input type="number" placeholder="e.g. 88" value={sr} onChange={e=>setSr(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:sr?accent:C.border,width:"100%"}}/>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:3}}>Optional but improves dunk gap accuracy.</div>
             </div>
           </div>
           <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
@@ -998,12 +1004,12 @@ function DunkCalc({onStart, accentColor}) {
           {res.g>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px"}}>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
-              {LEVELS.filter(l=>l.vert>res.v).slice(0,3).map((lv,i)=>{
-                // Height-adjusted vertical needed — same formula as Step 2
-                const reach = Math.round(res.h * 1.335);
+              {(() => {
+                // Height-adjusted vertical needed — use standingReach if provided, otherwise estimate
+                const reach = res.standingReach || Math.round(res.h * 1.335);
                 const extraNeeded = {1:null,2:null,3:-6,4:0,5:2,6:5,7:8,8:10};
-                const vertNeeded = extraNeeded[lv.id]!==null ? Math.max(1, 120-reach+extraNeeded[lv.id]) : lv.vert;
-                return (
+                // Calculate vertical needed for each level based on standing reach
+                return LEVELS.filter(l=>l.vert>res.v).slice(0,3).map((lv,i)=>{ const vertNeeded = extraNeeded[lv.id]!==null ? Math.max(1, 120-reach+extraNeeded[lv.id]) : lv.vert; return (
                   <div key={lv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<2?`1px solid ${C.dim}`:"none"}}>
                     <span style={{fontSize:16,minWidth:20}}>{lv.icon}</span>
                     <div style={{flex:1}}>
@@ -1012,7 +1018,7 @@ function DunkCalc({onStart, accentColor}) {
                     </div>
                     {i===0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:lv.color}}>NEXT ↑</span>}
                   </div>
-                );
+                );});
               })}
             </div>
           )}
@@ -1032,7 +1038,7 @@ function Onboarding({calcRes,onComplete, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [step,setStep]=useState(0);
   const initialLevel = calcRes ? (LEVELS.slice().reverse().find(l=>calcRes.v>=l.vert)||LEVELS[0]).id : 3;
-  const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner"});
+  const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner",vertical:calcRes?.v?.toString()||"",standingReach:calcRes?.standingReach?.toString()||""});
   const ok0=d.name.trim()&&d.age&&d.height;
   return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center"}}>
@@ -1060,6 +1066,11 @@ function Onboarding({calcRes,onComplete, accentColor}) {
                 </div>
               </div>
               <div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>CURRENT VERTICAL (inches)</div>
+                <input type="number" min="10" max="50" placeholder="—" value={d.vertical} onChange={e=>setD(x=>({...x,vertical:e.target.value}))} style={{fontSize:20,padding:"11px 12px",borderColor:d.vertical?accent:C.border}}/>
+                {calcRes?.v && <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,marginTop:3}}>Prefilled from previous page.</div>}
+              </div>
+              <div>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>EXPERIENCE</div>
                 <div style={{display:"flex",gap:6}}>
                   {["beginner","intermediate","advanced"].map(s=>(
@@ -1081,7 +1092,7 @@ function Onboarding({calcRes,onComplete, accentColor}) {
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Honest answer = better workouts.</div>
               {parseFloat(d.height) > 0 ? (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,marginTop:5}}>
-                  Standing reach at {d.height}": ~{Math.round(parseFloat(d.height)*1.335)}" — verticals calculated for your height
+                  Standing reach: {d.standingReach ? `${d.standingReach}" (measured)` : `~${Math.round(parseFloat(d.height)*1.335)}" (estimated)`} — verticals calculated for your height
                 </div>
               ) : (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:5}}>
@@ -1091,11 +1102,11 @@ function Onboarding({calcRes,onComplete, accentColor}) {
             </div>
             {(() => {
               // Height-adjusted vertical estimates
-              // Standing reach = height * 1.335 (well-researched average across heights)
+              // Standing reach = height * 1.335 (well-researched average across heights) if not provided
               // Vertical to reach a milestone = rimHeight - standingReach + extraInches
               // Rim = 120". Touch rim = exactly 120". Grab rim needs ~2" past, hang ~4", almost ~6", dunk ~8"
               const h = parseFloat(d.height) || 0;
-              const reach = h > 0 ? Math.round(h * 1.335) : null;
+              const reach = d.standingReach ? parseFloat(d.standingReach) : (h > 0 ? Math.round(h * 1.335) : null);
               // Extra inches above rim needed per level
               const extraNeeded = {
                 1: null,   // Can't touch net — no formula needed, just below net
@@ -1463,6 +1474,7 @@ export default function App() {
     skill:raw.skill||"beginner", xp:raw.xp||0,
     activeDays:raw.activeDays||[], vertLogs:raw.vertLogs||[],
     sprints:raw.sprints||[], isPro:raw.isPro||false, chDates:raw.chDates||[],
+    vertical:raw.vertical, standingReach:raw.standingReach, age:raw.age,
     streak:calcStreak(raw.activeDays||[]),
     doneToday:(raw.activeDays||[]).includes(today()),
     sessions:(raw.activeDays||[]).length,
@@ -1478,6 +1490,7 @@ export default function App() {
   const coachQLeft  = Math.max(0, coachQLimit - todayQCount);
 
   // Full coach snapshot
+  console.log("HOME PROFILE", D);
   const snap = snapshot({...raw, vertLogs:D.vertLogs, activeDays:D.activeDays});
   const { gap, effVert, wkSess, lastDaysAgo, weeklyGain, monthlyGain, trend } = snap;
 
@@ -1494,7 +1507,8 @@ export default function App() {
   // Days trained this month
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
   const daysThisMonth = D.activeDays.filter(d=>new Date(d)>=monthStart).length;
-  const pct     = dunkPctFn(parseFloat(D.height)||66, effVert);
+  const sr      = D.standingReach ? parseFloat(D.standingReach) : null;
+  const pct     = dunkPctFn(parseFloat(D.height)||66, effVert, sr);
 
   // ── STREAK SHIELD (Pro only) ─────────────────────────────────────────────
   const shieldAvailable = D.isPro && (raw.shieldUsedWeek !== getWeekNumber());
@@ -1704,9 +1718,9 @@ export default function App() {
     // Track full workouts for the wc_noskim weekly challenge
     const fullWorkouts = [...(raw.fullWorkouts||[])];
     if (doneCnt === todayW.drills.length && !fullWorkouts.includes(today())) {
-      fullWorkouts.push(today());
+        fullWorkouts.push(today());
     }
-    mut(prev => ({...prev, activeDays:days, xp:newXp, fullWorkouts}));
+      mut(prev => ({...prev, activeDays:days, xp:newXp, fullWorkouts}));
     spawnXP(60+bonus);
     const pwMsg = coachMsg(snap, {type:"post_workout", done:doneCnt, total:todayW.drills.length});
     setPostWorkoutMsg(pwMsg);
@@ -1797,8 +1811,9 @@ export default function App() {
 
   if (screen==="onboard") return (
     <Onboarding calcRes={calcRes} onComplete={d=>{
-      const vl = calcRes ? [{v:calcRes.v,date:today()}] : [];
-      const nd = {name:d.name,age:d.age,height:d.height,level:d.level,skill:d.skill,xp:0,activeDays:[],vertLogs:vl,sprints:[],chDates:[],isPro:false};
+      const vl = d.vertical ? [{v:parseFloat(d.vertical),date:today()}] : (calcRes ? [{v:calcRes.v,date:today()}] : []);
+      const nd = {name:d.name,age:d.age,height:d.height,level:d.level,skill:d.skill,vertical:d.vertical,standingReach:d.standingReach,xp:0,activeDays:[],vertLogs:vl,sprints:[],chDates:[],isPro:false};
+      console.log("FINAL PROFILE", nd);
       save(nd); setRaw(nd); setScreen("app");
     }} accentColor={accentColor}/>
   );
