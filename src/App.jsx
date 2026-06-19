@@ -1101,7 +1101,7 @@ function DunkCalc({onStart, accentColor}) {
 function Onboarding({calcRes,onComplete, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [step,setStep]=useState(0);
-  const initialLevel = calcRes ? (LEVELS.slice().reverse().find(l=>calcRes.v>=l.vert)||LEVELS[0]).id : 3;
+  const initialLevel = calcRes ? levelForVert(calcRes.v, calcRes.h) : 3;
   const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner"});
   const ok0=d.name.trim()&&d.age&&d.height;
   return (
@@ -1160,31 +1160,16 @@ function Onboarding({calcRes,onComplete, accentColor}) {
               )}
             </div>
             {(() => {
-              // Height-adjusted vertical estimates
-              // Standing reach = height * 1.335 (well-researched average across heights)
-              // Vertical to reach a milestone = rimHeight - standingReach + extraInches
-              // Rim = 120". Touch rim = exactly 120". Grab rim needs ~2" past, hang ~4", almost ~6", dunk ~8"
-              const h = parseFloat(d.height) || 0;
-              const reach = h > 0 ? Math.round(h * 1.335) : null;
-              // Extra inches above rim needed per level
-              const extraNeeded = {
-                1: null,   // Can't touch net — no formula needed, just below net
-                2: null,   // Touches net — net is at 120", just show generic
-                3: -6,     // Touches backboard — backboard face is ~114-116" reachable area
-                4: 0,      // Touches rim — exactly 120"
-                5: 2,      // Grabs rim — need ~2" past rim
-                6: 5,      // Hangs on rim — need 4-5" past
-                7: 8,      // Almost dunking — need ~8" past rim
-                8: 10,     // Can dunk — need ~10" wrist above rim
-              };
+              // Height-adjusted vertical estimates via the single source of truth.
+              // Levels 1–2 stay descriptive (no numeric target).
+              const h = parseInches(d.height, 48, 96);
               return (
                 <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:340,overflowY:"auto"}}>
                   {LEVELS.map(lv=>{
                     // Compute height-specific vertical needed
                     let vertNeededStr;
-                    if (reach && extraNeeded[lv.id] !== null) {
-                      const vertNeeded = Math.max(1, 120 - reach + extraNeeded[lv.id]);
-                      vertNeededStr = `~${vertNeeded}" vertical for your height`;
+                    if (h !== null && LEVEL_EXTRA[lv.id] !== null) {
+                      vertNeededStr = `~${levelVert(lv.id, h)}" vertical for your height`;
                     } else {
                       vertNeededStr = lv.id <= 2 ? "low vertical or standing reach" : `~${lv.vert}" vertical needed`;
                     }
