@@ -314,9 +314,80 @@ function xpProg(xp) {
   if (i <= 0) return {pct:100, needed:0, next:"MAX"};
   return {pct:Math.round(((xp-RANKS[i-1].min)/(RANKS[i].min-RANKS[i-1].min))*100), needed:RANKS[i].min-xp, next:RANKS[i].name};
 }
-const sReach    = h => Math.round(h * 1.335);
-const gapFn     = (h,v) => Math.max(0, 120 - sReach(h) - v);
-const dunkPctFn = (h,v) => { const denom = 120-sReach(h); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
+// ─── STANDING REACH + MILESTONE SOURCE OF TRUTH ──────────────────────────────
+// Rim = 120". A milestone's required vertical = 120 - effectiveReach + extra,
+// where `extra` is how far above (+) or below (-) the rim the hand must reach.
+const RIM_HEIGHT   = 120;
+const REACH_RATIO  = 1.335;          // standing reach ≈ height * 1.335
+const DEFAULT_HEIGHT = 66;           // 5'6" fallback when height is unknown
+const DEFAULT_REACH  = Math.round(DEFAULT_HEIGHT * REACH_RATIO); // 88"
+const MIN_VERT  = 1;                 // never show a non-positive target
+const MIN_STEP  = 1;                 // each milestone strictly exceeds the previous
+// Numeric milestones start at level 3 (Touches Net). Levels 1–2 stay descriptive.
+const EXTRA_NEEDED = { 3:-14, 4:-6, 5:0, 6:3, 7:5, 8:8, 9:10 };
+// Map LEVELS ids (1–8) onto the EXTRA_NEEDED scale. LEVELS:
+//   1 Can't Touch Net (descriptive), 2 Touches Net, 3 Touches Backboard,
+//   4 Touches Rim, 5 Grabs Rim, 6 Hangs on Rim, 7 Almost Dunking, 8 CAN DUNK.
+const LEVEL_EXTRA = { 1:null, 2:-14, 3:-6, 4:0, 5:3, 6:5, 7:8, 8:10 };
+
+// Parse + validate an inches value; returns a clamped number or null.
+const parseInches = (val, min, max) => {
+  const n = parseFloat(val);
+  if (!Number.isFinite(n)) return null;
+  if (n < min || n > max) return null;
+  return n;
+};
+
+// Resolve the reach to use: measured standingReach > derived from height > default.
+const effectiveReach = (height, standingReach) => {
+  const h = parseInches(height, 48, 96);
+  const r = parseInches(standingReach, 60, 130);
+  // Measured reach only trusted if it's physically plausible vs height.
+  if (r !== null && (h === null || r >= h)) return r;
+  if (h !== null) return Math.round(h * REACH_RATIO);
+  return DEFAULT_REACH;
+};
+
+// Build a strictly-increasing target table for LEVELS ids 1–8.
+// Levels with a null extra (id 1) have no numeric target (descriptive only).
+function levelTable(height, standingReach) {
+  const reach = effectiveReach(height, standingReach);
+  const out = {};
+  let prev = null;
+  for (let id = 1; id <= 8; id++) {
+    const extra = LEVEL_EXTRA[id];
+    if (extra === null || extra === undefined) { out[id] = null; continue; }
+    let target = Math.max(MIN_VERT, RIM_HEIGHT - reach + extra);
+    if (prev !== null) target = Math.max(target, prev + MIN_STEP); // enforce monotonicity
+    out[id] = target;
+    prev = target;
+  }
+  return out;
+}
+
+// Required vertical for a single level id, reach-adjusted. Falls back to the
+// static LEVELS[].vert when no numeric target exists (descriptive levels).
+function levelVert(levelId, height, standingReach) {
+  const t = levelTable(height, standingReach)[levelId];
+  if (t !== null && t !== undefined) return t;
+  const lv = LEVELS.find(l => l.id === levelId);
+  return lv ? lv.vert : MIN_VERT;
+}
+
+// Highest level id whose reach-adjusted target the given vertical clears.
+function levelForVert(vert, height, standingReach) {
+  const table = levelTable(height, standingReach);
+  let best = 1;
+  for (let id = 2; id <= 8; id++) {
+    const t = table[id];
+    if (t !== null && t !== undefined && vert >= t) best = id;
+  }
+  return best;
+}
+
+const sReach    = (h, sr) => effectiveReach(h, sr);
+const gapFn     = (h,v,sr) => Math.max(0, RIM_HEIGHT - sReach(h, sr) - v);
+const dunkPctFn = (h,v,sr) => { const denom = RIM_HEIGHT-sReach(h, sr); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
 const weeksEst  = g => g <= 0 ? 0 : Math.ceil(g / 0.32);
 
 function RankCard({r,cur,un,p,reward}) {
@@ -438,13 +509,14 @@ function spawnXP(n) {
 function snapshot(raw) {
   const days  = raw.activeDays || [];
   const verts = raw.vertLogs   || [];
-  const h     = parseFloat(raw.height) || 66;
+  const h     = parseFloat(raw.height) || DEFAULT_HEIGHT;
+  const sr    = raw.standingReach;
   const lvId  = raw.level || 3;
-  const curLvVert = (LEVELS.find(l => l.id === lvId) || LEVELS[2]).vert;
+  const curLvVert = levelVert(lvId, h, sr);
   const lastV  = verts.length ? verts[verts.length-1].v : null;
   const bestV  = verts.length ? Math.max(...verts.map(v => v.v)) : null;
   const effV   = lastV || curLvVert;
-  const gap    = gapFn(h, effV);
+  const gap    = gapFn(h, effV, sr);
   const streak = calcStreak(days);
   const sessions = days.length;
 
@@ -948,7 +1020,8 @@ function DunkCalc({onStart, accentColor}) {
   function calc() {
     const hi=parseFloat(h), vi=parseFloat(v); if (!hi||!vi) return;
     const g=gapFn(hi,vi), pct=dunkPctFn(hi,vi), wk=weeksEst(g);
-    const lv=LEVELS.slice().reverse().find(l=>vi>=l.vert)||LEVELS[0];
+    const lvId=levelForVert(vi, hi);
+    const lv=LEVELS.find(l=>l.id===lvId)||LEVELS[0];
     setRes({g,pct,wk,lv,h:hi,v:vi});
   }
   return (
@@ -998,11 +1071,9 @@ function DunkCalc({onStart, accentColor}) {
           {res.g>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px"}}>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
-              {LEVELS.filter(l=>l.vert>res.v).slice(0,3).map((lv,i)=>{
-                // Height-adjusted vertical needed — same formula as Step 2
-                const reach = Math.round(res.h * 1.335);
-                const extraNeeded = {1:null,2:null,3:-6,4:0,5:2,6:5,7:8,8:10};
-                const vertNeeded = extraNeeded[lv.id]!==null ? Math.max(1, 120-reach+extraNeeded[lv.id]) : lv.vert;
+              {LEVELS.filter(l=>levelVert(l.id,res.h)>res.v).slice(0,3).map((lv,i)=>{
+                // Height-adjusted vertical needed — single source of truth
+                const vertNeeded = levelVert(lv.id, res.h);
                 return (
                   <div key={lv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<2?`1px solid ${C.dim}`:"none"}}>
                     <span style={{fontSize:16,minWidth:20}}>{lv.icon}</span>
@@ -1031,7 +1102,7 @@ function DunkCalc({onStart, accentColor}) {
 function Onboarding({calcRes,onComplete, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [step,setStep]=useState(0);
-  const initialLevel = calcRes ? (LEVELS.slice().reverse().find(l=>calcRes.v>=l.vert)||LEVELS[0]).id : 3;
+  const initialLevel = calcRes ? levelForVert(calcRes.v, calcRes.h) : 3;
   const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner"});
   const ok0=d.name.trim()&&d.age&&d.height;
   return (
@@ -1090,31 +1161,16 @@ function Onboarding({calcRes,onComplete, accentColor}) {
               )}
             </div>
             {(() => {
-              // Height-adjusted vertical estimates
-              // Standing reach = height * 1.335 (well-researched average across heights)
-              // Vertical to reach a milestone = rimHeight - standingReach + extraInches
-              // Rim = 120". Touch rim = exactly 120". Grab rim needs ~2" past, hang ~4", almost ~6", dunk ~8"
-              const h = parseFloat(d.height) || 0;
-              const reach = h > 0 ? Math.round(h * 1.335) : null;
-              // Extra inches above rim needed per level
-              const extraNeeded = {
-                1: null,   // Can't touch net — no formula needed, just below net
-                2: null,   // Touches net — net is at 120", just show generic
-                3: -6,     // Touches backboard — backboard face is ~114-116" reachable area
-                4: 0,      // Touches rim — exactly 120"
-                5: 2,      // Grabs rim — need ~2" past rim
-                6: 5,      // Hangs on rim — need 4-5" past
-                7: 8,      // Almost dunking — need ~8" past rim
-                8: 10,     // Can dunk — need ~10" wrist above rim
-              };
+              // Height-adjusted vertical estimates via the single source of truth.
+              // Levels 1–2 stay descriptive (no numeric target).
+              const h = parseInches(d.height, 48, 96);
               return (
                 <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:340,overflowY:"auto"}}>
                   {LEVELS.map(lv=>{
                     // Compute height-specific vertical needed
                     let vertNeededStr;
-                    if (reach && extraNeeded[lv.id] !== null) {
-                      const vertNeeded = Math.max(1, 120 - reach + extraNeeded[lv.id]);
-                      vertNeededStr = `~${vertNeeded}" vertical for your height`;
+                    if (h !== null && LEVEL_EXTRA[lv.id] !== null) {
+                      vertNeededStr = `~${levelVert(lv.id, h)}" vertical for your height`;
                     } else {
                       vertNeededStr = lv.id <= 2 ? "low vertical or standing reach" : `~${lv.vert}" vertical needed`;
                     }
@@ -1459,7 +1515,7 @@ export default function App() {
 
   // Derived data
   const D = {
-    name:raw.name||"ATHLETE", height:raw.height||"", level:raw.level!=null?raw.level:3,
+    name:raw.name||"ATHLETE", height:raw.height||"", standingReach:raw.standingReach, level:raw.level!=null?raw.level:3,
     skill:raw.skill||"beginner", xp:raw.xp||0,
     activeDays:raw.activeDays||[], vertLogs:raw.vertLogs||[],
     sprints:raw.sprints||[], isPro:raw.isPro||false, chDates:raw.chDates||[],
@@ -1494,7 +1550,7 @@ export default function App() {
   // Days trained this month
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
   const daysThisMonth = D.activeDays.filter(d=>new Date(d)>=monthStart).length;
-  const pct     = dunkPctFn(parseFloat(D.height)||66, effVert);
+  const pct     = dunkPctFn(parseFloat(D.height)||DEFAULT_HEIGHT, effVert, D.standingReach);
 
   // ── STREAK SHIELD (Pro only) ─────────────────────────────────────────────
   const shieldAvailable = D.isPro && (raw.shieldUsedWeek !== getWeekNumber());
@@ -1725,9 +1781,9 @@ export default function App() {
 
     const logs = [...D.vertLogs, {v, date:today()}];
 
-    // AUTO-UPDATE LEVEL: find the highest milestone the user's vertical clears
-    const autoLevel = LEVELS.slice().reverse().find(l => v >= l.vert);
-    const newLevel = autoLevel ? Math.max(autoLevel.id, D.level) : D.level;
+    // AUTO-UPDATE LEVEL: highest milestone the user's vertical clears (reach-aware)
+    const autoLevelId = levelForVert(v, D.height, D.standingReach);
+    const newLevel = Math.max(autoLevelId, D.level);
     const leveledUp = newLevel > D.level;
 
     mut(prev2 => ({...prev2, vertLogs:logs, xp:(prev2.xp||0)+xpGain, level:newLevel}));
@@ -1756,9 +1812,13 @@ export default function App() {
       // First ever log — only one notification
       setTimeout(() => triggerM("FIRST VERT LOGGED 📊", "Now I can track your progress. Log regularly."), 300);
     }
-    if (v>=24&&!D.vertLogs.some(l=>l.v>=24)) setTimeout(()=>triggerM("TOUCHES RIM 🤙","You earned this. Keep going."),700);
-    if (v>=28&&!D.vertLogs.some(l=>l.v>=28)) setTimeout(()=>triggerM("HANGS ON RIM 💥","Elite-level athleticism. Dunk is right there."),700);
-    if (v>=32&&!D.vertLogs.some(l=>l.v>=32)) setTimeout(()=>triggerM("👑 YOU CAN DUNK","You did it. You are the proof it works."),700);
+    // Reach-aware milestone popups — thresholds match the Your Path targets
+    const rimT  = levelVert(4, D.height, D.standingReach); // Touches Rim
+    const hangT = levelVert(6, D.height, D.standingReach); // Hangs on Rim
+    const dunkT = levelVert(8, D.height, D.standingReach); // CAN DUNK
+    if (v>=rimT &&!D.vertLogs.some(l=>l.v>=rimT))  setTimeout(()=>triggerM("TOUCHES RIM 🤙","You earned this. Keep going."),700);
+    if (v>=hangT&&!D.vertLogs.some(l=>l.v>=hangT)) setTimeout(()=>triggerM("HANGS ON RIM 💥","Elite-level athleticism. Dunk is right there."),700);
+    if (v>=dunkT&&!D.vertLogs.some(l=>l.v>=dunkT)) setTimeout(()=>triggerM("👑 YOU CAN DUNK","You did it. You are the proof it works."),700);
   }
 
   function logSprint() {
@@ -1881,7 +1941,7 @@ export default function App() {
         <div style={{display:"flex",gap:6,marginTop:10}}>
           {[
             {l:"SESSIONS",v:D.sessions},
-            {l:"VERT",v:lastVert?`${lastVert}"`:`~${curLv.vert}"`},
+            {l:"VERT",v:lastVert?`${lastVert}"`:`~${levelVert(curLv.id, D.height, D.standingReach)}"`},
             {l:"THIS MONTH",v:`${daysThisMonth}d`},
           ].map(s=>(
             <div key={s.l} style={{flex:1,background:C.dim,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
@@ -2450,7 +2510,7 @@ export default function App() {
               <span style={{fontSize:18,minWidth:24}}>{lv.icon}</span>
               <div style={{flex:1,textAlign:"left"}}>
                 <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:17,color:D.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>~{lv.vert}" vertical</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>~{levelVert(lv.id, D.height, D.standingReach)}" vertical</div>
               </div>
               {D.level===lv.id&&<span style={{color:lv.color,fontSize:12,fontFamily:"'DM Mono',monospace"}}>CURRENT</span>}
             </button>
@@ -2465,9 +2525,9 @@ export default function App() {
     {icon:"🏀",label:"FIRST SESSION",  unlocked:D.sessions>=1,   desc:"Complete first workout",       reward:"+50 XP on unlock"},
     {icon:"🔥",label:"3-DAY STREAK",   unlocked:D.streak>=3,     desc:"Train 3 days in a row",         reward:"+75 XP on unlock"},
     {icon:"⚡",label:"WEEK WARRIOR",   unlocked:D.streak>=7,     desc:"7-day training streak",         reward:"+100 XP on unlock"},
-    {icon:"🤙",label:"TOUCHES RIM",    unlocked:D.vertLogs.some(v=>v.v>=24), desc:"Vertical reaches 24\"",  reward:"+75 XP on unlock"},
-    {icon:"💥",label:"GOT HOPS",       unlocked:D.vertLogs.some(v=>v.v>=28), desc:"Vertical reaches 28\"",  reward:"+100 XP on unlock"},
-    {icon:"👑",label:"DUNKER",         unlocked:D.vertLogs.some(v=>v.v>=32), desc:"Can dunk",               reward:"+200 XP on unlock"},
+    {icon:"🤙",label:"TOUCHES RIM",    unlocked:D.vertLogs.some(v=>v.v>=levelVert(4,D.height,D.standingReach)), desc:`Vertical reaches ~${levelVert(4,D.height,D.standingReach)}\"`,  reward:"+75 XP on unlock"},
+    {icon:"💥",label:"GOT HOPS",       unlocked:D.vertLogs.some(v=>v.v>=levelVert(6,D.height,D.standingReach)), desc:`Vertical reaches ~${levelVert(6,D.height,D.standingReach)}\"`,  reward:"+100 XP on unlock"},
+    {icon:"👑",label:"DUNKER",         unlocked:D.vertLogs.some(v=>v.v>=levelVert(8,D.height,D.standingReach)), desc:"Can dunk",               reward:"+200 XP on unlock"},
     {icon:"💪",label:"10 SESSIONS",    unlocked:D.sessions>=10,  desc:"10 workouts completed",         reward:"+100 XP on unlock"},
     {icon:"🌟",label:"PRO MEMBER",     unlocked:D.isPro,         desc:"Upgraded to Pro",               reward:"+75 XP on unlock"},
   ];
