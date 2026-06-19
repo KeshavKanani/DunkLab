@@ -1019,7 +1019,8 @@ function DunkCalc({onStart, accentColor}) {
   function calc() {
     const hi=parseFloat(h), vi=parseFloat(v); if (!hi||!vi) return;
     const g=gapFn(hi,vi), pct=dunkPctFn(hi,vi), wk=weeksEst(g);
-    const lv=LEVELS.slice().reverse().find(l=>vi>=l.vert)||LEVELS[0];
+    const lvId=levelForVert(vi, hi);
+    const lv=LEVELS.find(l=>l.id===lvId)||LEVELS[0];
     setRes({g,pct,wk,lv,h:hi,v:vi});
   }
   return (
@@ -1069,11 +1070,9 @@ function DunkCalc({onStart, accentColor}) {
           {res.g>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px"}}>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
-              {LEVELS.filter(l=>l.vert>res.v).slice(0,3).map((lv,i)=>{
-                // Height-adjusted vertical needed — same formula as Step 2
-                const reach = Math.round(res.h * 1.335);
-                const extraNeeded = {1:null,2:null,3:-6,4:0,5:2,6:5,7:8,8:10};
-                const vertNeeded = extraNeeded[lv.id]!==null ? Math.max(1, 120-reach+extraNeeded[lv.id]) : lv.vert;
+              {LEVELS.filter(l=>levelVert(l.id,res.h)>res.v).slice(0,3).map((lv,i)=>{
+                // Height-adjusted vertical needed — single source of truth
+                const vertNeeded = levelVert(lv.id, res.h);
                 return (
                   <div key={lv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<2?`1px solid ${C.dim}`:"none"}}>
                     <span style={{fontSize:16,minWidth:20}}>{lv.icon}</span>
