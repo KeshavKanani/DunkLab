@@ -1940,7 +1940,7 @@ export default function App() {
         <div style={{display:"flex",gap:6,marginTop:10}}>
           {[
             {l:"SESSIONS",v:D.sessions},
-            {l:"VERT",v:lastVert?`${lastVert}"`:`~${curLv.vert}"`},
+            {l:"VERT",v:lastVert?`${lastVert}"`:`~${levelVert(curLv.id, D.height, D.standingReach)}"`},
             {l:"THIS MONTH",v:`${daysThisMonth}d`},
           ].map(s=>(
             <div key={s.l} style={{flex:1,background:C.dim,borderRadius:5,padding:"6px 0",textAlign:"center"}}>
@@ -2509,7 +2509,7 @@ export default function App() {
               <span style={{fontSize:18,minWidth:24}}>{lv.icon}</span>
               <div style={{flex:1,textAlign:"left"}}>
                 <div style={{fontFamily:'"Barlow Condensed",sans-serif',fontWeight:700,fontSize:17,color:D.level===lv.id?lv.color:"#F0F0F0"}}>{lv.label}</div>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>~{lv.vert}" vertical</div>
+                <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>~{levelVert(lv.id, D.height, D.standingReach)}" vertical</div>
               </div>
               {D.level===lv.id&&<span style={{color:lv.color,fontSize:12,fontFamily:"'DM Mono',monospace"}}>CURRENT</span>}
             </button>
