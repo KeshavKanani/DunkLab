@@ -1780,9 +1780,9 @@ export default function App() {
 
     const logs = [...D.vertLogs, {v, date:today()}];
 
-    // AUTO-UPDATE LEVEL: find the highest milestone the user's vertical clears
-    const autoLevel = LEVELS.slice().reverse().find(l => v >= l.vert);
-    const newLevel = autoLevel ? Math.max(autoLevel.id, D.level) : D.level;
+    // AUTO-UPDATE LEVEL: highest milestone the user's vertical clears (reach-aware)
+    const autoLevelId = levelForVert(v, D.height, D.standingReach);
+    const newLevel = Math.max(autoLevelId, D.level);
     const leveledUp = newLevel > D.level;
 
     mut(prev2 => ({...prev2, vertLogs:logs, xp:(prev2.xp||0)+xpGain, level:newLevel}));
@@ -1811,9 +1811,13 @@ export default function App() {
       // First ever log — only one notification
       setTimeout(() => triggerM("FIRST VERT LOGGED 📊", "Now I can track your progress. Log regularly."), 300);
     }
-    if (v>=24&&!D.vertLogs.some(l=>l.v>=24)) setTimeout(()=>triggerM("TOUCHES RIM 🤙","You earned this. Keep going."),700);
-    if (v>=28&&!D.vertLogs.some(l=>l.v>=28)) setTimeout(()=>triggerM("HANGS ON RIM 💥","Elite-level athleticism. Dunk is right there."),700);
-    if (v>=32&&!D.vertLogs.some(l=>l.v>=32)) setTimeout(()=>triggerM("👑 YOU CAN DUNK","You did it. You are the proof it works."),700);
+    // Reach-aware milestone popups — thresholds match the Your Path targets
+    const rimT  = levelVert(4, D.height, D.standingReach); // Touches Rim
+    const hangT = levelVert(6, D.height, D.standingReach); // Hangs on Rim
+    const dunkT = levelVert(8, D.height, D.standingReach); // CAN DUNK
+    if (v>=rimT &&!D.vertLogs.some(l=>l.v>=rimT))  setTimeout(()=>triggerM("TOUCHES RIM 🤙","You earned this. Keep going."),700);
+    if (v>=hangT&&!D.vertLogs.some(l=>l.v>=hangT)) setTimeout(()=>triggerM("HANGS ON RIM 💥","Elite-level athleticism. Dunk is right there."),700);
+    if (v>=dunkT&&!D.vertLogs.some(l=>l.v>=dunkT)) setTimeout(()=>triggerM("👑 YOU CAN DUNK","You did it. You are the proof it works."),700);
   }
 
   function logSprint() {
