@@ -509,13 +509,14 @@ function spawnXP(n) {
 function snapshot(raw) {
   const days  = raw.activeDays || [];
   const verts = raw.vertLogs   || [];
-  const h     = parseFloat(raw.height) || 66;
+  const h     = parseFloat(raw.height) || DEFAULT_HEIGHT;
+  const sr    = raw.standingReach;
   const lvId  = raw.level || 3;
-  const curLvVert = (LEVELS.find(l => l.id === lvId) || LEVELS[2]).vert;
+  const curLvVert = levelVert(lvId, h, sr);
   const lastV  = verts.length ? verts[verts.length-1].v : null;
   const bestV  = verts.length ? Math.max(...verts.map(v => v.v)) : null;
   const effV   = lastV || curLvVert;
-  const gap    = gapFn(h, effV);
+  const gap    = gapFn(h, effV, sr);
   const streak = calcStreak(days);
   const sessions = days.length;
 
@@ -1514,7 +1515,7 @@ export default function App() {
 
   // Derived data
   const D = {
-    name:raw.name||"ATHLETE", height:raw.height||"", level:raw.level!=null?raw.level:3,
+    name:raw.name||"ATHLETE", height:raw.height||"", standingReach:raw.standingReach, level:raw.level!=null?raw.level:3,
     skill:raw.skill||"beginner", xp:raw.xp||0,
     activeDays:raw.activeDays||[], vertLogs:raw.vertLogs||[],
     sprints:raw.sprints||[], isPro:raw.isPro||false, chDates:raw.chDates||[],
@@ -1549,7 +1550,7 @@ export default function App() {
   // Days trained this month
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
   const daysThisMonth = D.activeDays.filter(d=>new Date(d)>=monthStart).length;
-  const pct     = dunkPctFn(parseFloat(D.height)||66, effVert);
+  const pct     = dunkPctFn(parseFloat(D.height)||DEFAULT_HEIGHT, effVert, D.standingReach);
 
   // ── STREAK SHIELD (Pro only) ─────────────────────────────────────────────
   const shieldAvailable = D.isPro && (raw.shieldUsedWeek !== getWeekNumber());
