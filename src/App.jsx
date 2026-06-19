@@ -314,9 +314,80 @@ function xpProg(xp) {
   if (i <= 0) return {pct:100, needed:0, next:"MAX"};
   return {pct:Math.round(((xp-RANKS[i-1].min)/(RANKS[i].min-RANKS[i-1].min))*100), needed:RANKS[i].min-xp, next:RANKS[i].name};
 }
-const sReach    = h => Math.round(h * 1.335);
-const gapFn     = (h,v) => Math.max(0, 120 - sReach(h) - v);
-const dunkPctFn = (h,v) => { const denom = 120-sReach(h); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
+// ─── STANDING REACH + MILESTONE SOURCE OF TRUTH ──────────────────────────────
+// Rim = 120". A milestone's required vertical = 120 - effectiveReach + extra,
+// where `extra` is how far above (+) or below (-) the rim the hand must reach.
+const RIM_HEIGHT   = 120;
+const REACH_RATIO  = 1.335;          // standing reach ≈ height * 1.335
+const DEFAULT_HEIGHT = 66;           // 5'6" fallback when height is unknown
+const DEFAULT_REACH  = Math.round(DEFAULT_HEIGHT * REACH_RATIO); // 88"
+const MIN_VERT  = 1;                 // never show a non-positive target
+const MIN_STEP  = 1;                 // each milestone strictly exceeds the previous
+// Numeric milestones start at level 3 (Touches Net). Levels 1–2 stay descriptive.
+const EXTRA_NEEDED = { 3:-14, 4:-6, 5:0, 6:3, 7:5, 8:8, 9:10 };
+// Map LEVELS ids (1–8) onto the EXTRA_NEEDED scale. LEVELS:
+//   1 Can't Touch Net (descriptive), 2 Touches Net, 3 Touches Backboard,
+//   4 Touches Rim, 5 Grabs Rim, 6 Hangs on Rim, 7 Almost Dunking, 8 CAN DUNK.
+const LEVEL_EXTRA = { 1:null, 2:-14, 3:-6, 4:0, 5:3, 6:5, 7:8, 8:10 };
+
+// Parse + validate an inches value; returns a clamped number or null.
+const parseInches = (val, min, max) => {
+  const n = parseFloat(val);
+  if (!Number.isFinite(n)) return null;
+  if (n < min || n > max) return null;
+  return n;
+};
+
+// Resolve the reach to use: measured standingReach > derived from height > default.
+const effectiveReach = (height, standingReach) => {
+  const h = parseInches(height, 48, 96);
+  const r = parseInches(standingReach, 60, 130);
+  // Measured reach only trusted if it's physically plausible vs height.
+  if (r !== null && (h === null || r >= h)) return r;
+  if (h !== null) return Math.round(h * REACH_RATIO);
+  return DEFAULT_REACH;
+};
+
+// Build a strictly-increasing target table for LEVELS ids 1–8.
+// Levels with a null extra (id 1) have no numeric target (descriptive only).
+function levelTable(height, standingReach) {
+  const reach = effectiveReach(height, standingReach);
+  const out = {};
+  let prev = null;
+  for (let id = 1; id <= 8; id++) {
+    const extra = LEVEL_EXTRA[id];
+    if (extra === null || extra === undefined) { out[id] = null; continue; }
+    let target = Math.max(MIN_VERT, RIM_HEIGHT - reach + extra);
+    if (prev !== null) target = Math.max(target, prev + MIN_STEP); // enforce monotonicity
+    out[id] = target;
+    prev = target;
+  }
+  return out;
+}
+
+// Required vertical for a single level id, reach-adjusted. Falls back to the
+// static LEVELS[].vert when no numeric target exists (descriptive levels).
+function levelVert(levelId, height, standingReach) {
+  const t = levelTable(height, standingReach)[levelId];
+  if (t !== null && t !== undefined) return t;
+  const lv = LEVELS.find(l => l.id === levelId);
+  return lv ? lv.vert : MIN_VERT;
+}
+
+// Highest level id whose reach-adjusted target the given vertical clears.
+function levelForVert(vert, height, standingReach) {
+  const table = levelTable(height, standingReach);
+  let best = 1;
+  for (let id = 2; id <= 8; id++) {
+    const t = table[id];
+    if (t !== null && t !== undefined && vert >= t) best = id;
+  }
+  return best;
+}
+
+const sReach    = (h, sr) => effectiveReach(h, sr);
+const gapFn     = (h,v,sr) => Math.max(0, RIM_HEIGHT - sReach(h, sr) - v);
+const dunkPctFn = (h,v,sr) => { const denom = RIM_HEIGHT-sReach(h, sr); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
 const weeksEst  = g => g <= 0 ? 0 : Math.ceil(g / 0.32);
 
 function RankCard({r,cur,un,p,reward}) {
