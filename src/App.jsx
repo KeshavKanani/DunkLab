@@ -1022,6 +1022,12 @@ function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
 function DunkCalc({onStart, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [h,setH]=useState(""); const [v,setV]=useState(""); const [sr,setSr]=useState(""); const [res,setRes]=useState(null);
+  const srValid = parseInches(sr, 60, 130) !== null;
+  const srHasValue = `${sr}`.trim() !== "";
+  const srEstimate = effectiveReach(h, null);
+  const srHelp = srHasValue
+    ? (srValid ? "Using measured standing reach." : "That reach looks off, so Dunk Lab will use the height-based estimate.")
+    : `Estimated from your height: ~${srEstimate}". Enter your real standing reach for better accuracy.`;
   function calc() {
     const hi=parseFloat(h), vi=parseFloat(v), sri=sr?parseFloat(sr):null; if (!hi||!vi) return;
     const g=gapFn(hi,vi,sri), pct=dunkPctFn(hi,vi,sri), wk=weeksEst(g);
@@ -1055,7 +1061,7 @@ function DunkCalc({onStart, accentColor}) {
             <div style={{marginTop:10}}>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>STANDING REACH (inches)</div>
               <input type="number" placeholder="e.g. 88" value={sr} onChange={e=>setSr(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:sr?accent:C.border,width:"100%"}}/>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:3}}>Optional but improves dunk gap accuracy.</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:srHasValue&&!srValid?C.gold:C.muted,marginTop:3,lineHeight:1.5}}>{srHelp}</div>
             </div>
           </div>
           <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
@@ -1113,6 +1119,12 @@ function Onboarding({calcRes,onComplete, accentColor}) {
   const [step,setStep]=useState(0);
   const initialLevel = calcRes ? levelForVert(calcRes.v, calcRes.h, calcRes.standingReach) : 3;
   const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner",vertical:calcRes?.v?.toString()||"",standingReach:calcRes?.standingReach?.toString()||""});
+  const onboardingReachValid = parseInches(d.standingReach, 60, 130) !== null;
+  const onboardingReachHasValue = `${d.standingReach}`.trim() !== "";
+  const onboardingReachEstimate = effectiveReach(d.height, null);
+  const onboardingReachHelp = onboardingReachHasValue
+    ? (onboardingReachValid ? "Using measured standing reach." : "That reach looks off, so Dunk Lab will use the height-based estimate.")
+    : `Estimated from your height: ~${onboardingReachEstimate}". Enter your real standing reach for better accuracy.`;
   const ok0=d.name.trim()&&d.age&&d.height;
   return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center"}}>
@@ -1166,7 +1178,7 @@ function Onboarding({calcRes,onComplete, accentColor}) {
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Honest answer = better workouts.</div>
               {parseFloat(d.height) > 0 ? (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,marginTop:5}}>
-                  Standing reach: {parseInches(d.standingReach, 60, 130) !== null ? `${parseInches(d.standingReach, 60, 130)}" (measured)` : `~${effectiveReach(d.height, null)}" (estimated)`} — verticals calculated for your height
+                  {onboardingReachHelp} Vertical targets are calculated from that reach.
                 </div>
               ) : (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:5}}>
