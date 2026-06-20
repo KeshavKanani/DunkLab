@@ -387,7 +387,13 @@ function levelForVert(vert, height, standingReach) {
 
 const sReach    = (h, sr) => effectiveReach(h, sr);
 const gapFn     = (h,v,sr) => Math.max(0, RIM_HEIGHT - sReach(h, sr) - v);
-const dunkPctFn = (h,v,sr) => { const denom = RIM_HEIGHT-sReach(h, sr); if(!denom||isNaN(denom)||isNaN(v)) return 3; return Math.min(100, Math.max(3, Math.round((v/denom)*100))); };
+const dunkPctFn = (h,v,sr) => {
+  const denom = RIM_HEIGHT - sReach(h, sr);
+  if (!Number.isFinite(denom) || denom <= 0) return 100;
+  const vert = parseFloat(v);
+  if (!Number.isFinite(vert)) return 3;
+  return Math.min(100, Math.max(3, Math.round((vert/denom)*100)));
+};
 const weeksEst  = g => g <= 0 ? 0 : Math.ceil(g / 0.32);
 
 function RankCard({r,cur,un,p,reward}) {
@@ -511,12 +517,11 @@ function snapshot(raw) {
   const verts = raw.vertLogs   || [];
   const h     = parseFloat(raw.height) || DEFAULT_HEIGHT;
   const sr    = raw.standingReach;
-  const lvId  = raw.level || 3;
-  const curLvVert = levelVert(lvId, h, sr);
   const lastV  = verts.length ? verts[verts.length-1].v : null;
   const bestV  = verts.length ? Math.max(...verts.map(v => v.v)) : null;
-  const effV   = lastV || curLvVert;
-  const gap    = gapFn(h, effV, sr);
+  const savedV = parseInches(raw.vertical, 5, 60);
+  const effV   = lastV ?? savedV;
+  const gap    = effV !== null ? gapFn(h, effV, sr) : null;
   const streak = calcStreak(days);
   const sessions = days.length;
 
@@ -549,7 +554,7 @@ function snapshot(raw) {
   const avgPerWeek = +(sessions / weeksSinceStart).toFixed(1);
 
   return { gap, streak, sessions, lastV, bestV, effVert: effV, weeklyGain, monthlyGain,
-           wkSess, lastDaysAgo, trend, wkEst: weeksEst(gap), avgPerWeek, h };
+           wkSess, lastDaysAgo, trend, wkEst: gap !== null ? weeksEst(gap) : null, avgPerWeek, h };
 }
 
 // ─── COACH MESSAGE GENERATOR ──────────────────────────────────────────────────
@@ -1161,7 +1166,7 @@ function Onboarding({calcRes,onComplete, accentColor}) {
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:C.muted}}>Honest answer = better workouts.</div>
               {parseFloat(d.height) > 0 ? (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:accent,marginTop:5}}>
-                  Standing reach: {d.standingReach ? `${d.standingReach}" (measured)` : `~${Math.round(parseFloat(d.height)*1.335)}" (estimated)`} — verticals calculated for your height
+                  Standing reach: {parseInches(d.standingReach, 60, 130) !== null ? `${parseInches(d.standingReach, 60, 130)}" (measured)` : `~${effectiveReach(d.height, null)}" (estimated)`} — verticals calculated for your height
                 </div>
               ) : (
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginTop:5}}>
@@ -1171,17 +1176,16 @@ function Onboarding({calcRes,onComplete, accentColor}) {
             </div>
             {(() => {
               // Height-adjusted vertical estimates via the single source of truth.
-              // Levels 1–2 stay descriptive (no numeric target).
-              const h = parseInches(d.height, 48, 96);
+              const h = parseInches(d.height, 48, 96) ?? DEFAULT_HEIGHT;
               return (
                 <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:340,overflowY:"auto"}}>
                   {LEVELS.map(lv=>{
                     // Compute height-specific vertical needed
                     let vertNeededStr;
-                    if (h !== null && LEVEL_EXTRA[lv.id] !== null) {
+                    if (LEVEL_EXTRA[lv.id] !== null) {
                       vertNeededStr = `~${levelVert(lv.id, h, d.standingReach)}" vertical for your height`;
                     } else {
-                      vertNeededStr = lv.id <= 2 ? "low vertical or standing reach" : `~${lv.vert}" vertical needed`;
+                      vertNeededStr = "low vertical or standing reach";
                     }
                     return (
                       <button key={lv.id} onClick={()=>setD(x=>({...x,level:lv.id}))} style={{background:d.level===lv.id?`${lv.color}18`:C.card,border:`1px solid ${d.level===lv.id?lv.color:C.border}`,borderRadius:6,padding:"11px 13px",display:"flex",alignItems:"center",gap:12,transition:"all .15s",width:"100%"}}>
@@ -1561,7 +1565,8 @@ export default function App() {
   // Days trained this month
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
   const daysThisMonth = D.activeDays.filter(d=>new Date(d)>=monthStart).length;
-  const pct     = dunkPctFn(parseFloat(D.height)||DEFAULT_HEIGHT, effVert, D.standingReach);
+  const hasVertData = Number.isFinite(effVert);
+  const pct     = hasVertData ? dunkPctFn(parseFloat(D.height)||DEFAULT_HEIGHT, effVert, D.standingReach) : 0;
 
   // ── STREAK SHIELD (Pro only) ─────────────────────────────────────────────
   const shieldAvailable = D.isPro && (raw.shieldUsedWeek !== getWeekNumber());
@@ -1985,19 +1990,19 @@ export default function App() {
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:9}}>
           <div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.muted,marginBottom:2}}>{gap>0?"INCHES FROM DUNKING":"YOU'RE READY"}</div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:42,letterSpacing:".04em",lineHeight:1,color:gap===0?C.green:theme.accent}}>{gap===0?"READY 👑":`${gap}"`}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.muted,marginBottom:2}}>{!hasVertData?"LOG YOUR VERTICAL":gap>0?"INCHES FROM DUNKING":"YOU'RE READY"}</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:42,letterSpacing:".04em",lineHeight:1,color:gap===0?C.green:theme.accent}}>{!hasVertData?"—":gap===0?"READY 👑":`${gap}"`}</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>Vert · ~{snap.wkEst}wk</div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:".04em"}}>{effVert}"</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted}}>{hasVertData ? `Vert · ~${snap.wkEst}wk` : "Vert · log"}</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:".04em"}}>{hasVertData ? `${effVert}"` : "—"}</div>
           </div>
         </div>
         <div style={{height:7,background:C.dim,borderRadius:4,marginBottom:4}}>
           <div style={{height:7,width:`${pct}%`,background:`linear-gradient(90deg,${theme.accent},#FF8000)`,borderRadius:4,transition:"width .7s"}}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:9}}>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:theme.accent,letterSpacing:".04em"}}>{pct}% THERE</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:15,color:theme.accent,letterSpacing:".04em"}}>{hasVertData ? `${pct}% THERE` : "LOG VERT"}</div>
           {nextLv&&<div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:nextLv.color}}>NEXT: {nextLv.icon} {nextLv.label}</div>}
         </div>
         {/* Milestones */}
