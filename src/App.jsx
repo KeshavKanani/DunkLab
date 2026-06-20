@@ -1088,7 +1088,7 @@ function DunkCalc({onStart, accentColor}) {
                     </div>
                     {i===0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:lv.color}}>NEXT ↑</span>}
                   </div>
-                );});
+                );})}
             </div>
           )}
           <button onClick={()=>onStart(res)} className="glowbtn" style={{width:"100%",background:accent,color:"#000",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
