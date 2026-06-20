@@ -1528,7 +1528,7 @@ export default function App() {
     skill:raw.skill||"beginner", xp:raw.xp||0,
     activeDays:raw.activeDays||[], vertLogs:raw.vertLogs||[],
     sprints:raw.sprints||[], isPro:raw.isPro||false, chDates:raw.chDates||[],
-    vertical:raw.vertical, standingReach:raw.standingReach, age:raw.age,
+    vertical:raw.vertical, age:raw.age,
     streak:calcStreak(raw.activeDays||[]),
     doneToday:(raw.activeDays||[]).includes(today()),
     sessions:(raw.activeDays||[]).length,
