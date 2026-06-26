@@ -318,6 +318,7 @@ function xpProg(xp) {
 // Rim = 120". A milestone's required vertical = 120 - effectiveReach + extra,
 // where `extra` is how far above (+) or below (-) the rim the hand must reach.
 const RIM_HEIGHT   = 120;
+const DUNK_TOUCH_HEIGHT = 130;
 const REACH_RATIO  = 1.335;          // standing reach ≈ height * 1.335
 const DEFAULT_HEIGHT = 66;           // 5'6" fallback when height is unknown
 const DEFAULT_REACH  = Math.round(DEFAULT_HEIGHT * REACH_RATIO); // 88"
@@ -338,12 +339,18 @@ const parseInches = (val, min, max) => {
   return n;
 };
 
+const measuredReach = (height, standingReach) => {
+  const h = parseInches(height, 48, 96);
+  const r = parseInches(standingReach, 60, 130);
+  if (r !== null && (h === null || r >= h)) return r;
+  return null;
+};
+
 // Resolve the reach to use: measured standingReach > derived from height > default.
 const effectiveReach = (height, standingReach) => {
   const h = parseInches(height, 48, 96);
-  const r = parseInches(standingReach, 60, 130);
-  // Measured reach only trusted if it's physically plausible vs height.
-  if (r !== null && (h === null || r >= h)) return r;
+  const r = measuredReach(height, standingReach);
+  if (r !== null) return r;
   if (h !== null) return Math.round(h * REACH_RATIO);
   return DEFAULT_REACH;
 };
@@ -385,14 +392,32 @@ function levelForVert(vert, height, standingReach) {
   return best;
 }
 
+const levelTouchHeight = (levelId) => {
+  const extra = LEVEL_EXTRA[levelId];
+  return extra === null || extra === undefined ? null : RIM_HEIGHT + extra;
+};
+
+function levelForTouch(touchHeight) {
+  let best = 1;
+  for (let id = 2; id <= 8; id++) {
+    const target = levelTouchHeight(id);
+    if (target !== null && touchHeight >= target) best = id;
+  }
+  return best;
+}
+
 const sReach    = (h, sr) => effectiveReach(h, sr);
-const gapFn     = (h,v,sr) => Math.max(0, RIM_HEIGHT - sReach(h, sr) - v);
+const maxTouchFn = (h,v,sr) => sReach(h, sr) + v;
+const gapFromTouchFn = touchHeight => Math.max(0, DUNK_TOUCH_HEIGHT - touchHeight);
+const gapFn     = (h,v,sr) => gapFromTouchFn(maxTouchFn(h, v, sr));
+const dunkPctFromTouchFn = touchHeight => {
+  if (!Number.isFinite(touchHeight)) return 3;
+  return Math.min(100, Math.max(3, Math.round((touchHeight / DUNK_TOUCH_HEIGHT) * 100)));
+};
 const dunkPctFn = (h,v,sr) => {
-  const denom = RIM_HEIGHT - sReach(h, sr);
-  if (!Number.isFinite(denom) || denom <= 0) return 100;
   const vert = parseFloat(v);
   if (!Number.isFinite(vert)) return 3;
-  return Math.min(100, Math.max(3, Math.round((vert/denom)*100)));
+  return dunkPctFromTouchFn(maxTouchFn(h, vert, sr));
 };
 const weeksEst  = g => g <= 0 ? 0 : Math.ceil(g / 0.32);
 
@@ -1022,18 +1047,43 @@ function ProModal({onClose,onUpgrade,gap,wkSess, accentColor}) {
 function DunkCalc({onStart, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [h,setH]=useState(""); const [v,setV]=useState(""); const [sr,setSr]=useState(""); const [res,setRes]=useState(null);
-  const srValid = parseInches(sr, 60, 130) !== null;
+  const [vertMode,setVertMode]=useState("known");
+  const [touchPoint,setTouchPoint]=useState("");
+  const touchPoints = [
+    {id:"net",label:"Bottom of net",height:106},
+    {id:"backboard",label:"Backboard",height:114},
+    {id:"rim",label:"Touch rim",height:120},
+    {id:"grab",label:"Grab rim",height:123},
+    {id:"hang",label:"Hang on rim",height:125},
+    {id:"almost",label:"Almost dunking",height:128},
+    {id:"dunk",label:"Dunking",height:130},
+  ];
+  const srValid = measuredReach(h, sr) !== null;
   const srHasValue = `${sr}`.trim() !== "";
   const srEstimate = effectiveReach(h, null);
   const srHelp = srHasValue
     ? (srValid ? "Using measured standing reach." : "That reach looks off, so Dunk Lab will use the height-based estimate.")
     : `Estimated from your height: ~${srEstimate}". Enter your real standing reach for better accuracy.`;
+  const hNum = parseFloat(h);
+  const hasHeight = Number.isFinite(hNum) && hNum > 0;
+  const selectedTouch = touchPoints.find(p=>p.id===touchPoint);
+  const estimatedVertical = hasHeight && selectedTouch
+    ? Math.min(60, Math.max(0, Math.round(selectedTouch.height - effectiveReach(h, sr))))
+    : null;
+  const touchHelp = !hasHeight
+    ? "Enter your height first so DunkLab can estimate your reach."
+    : !selectedTouch
+      ? "Don't know your vertical? Pick the highest thing you can touch and DunkLab will estimate it."
+      : `Estimated vertical: ~${estimatedVertical}" based on your reach and touch point. This is an estimate, not a measured vertical.`;
+  const calcVert = vertMode==="known" ? parseFloat(v) : estimatedVertical;
+  const canCalc = hasHeight && Number.isFinite(calcVert);
   function calc() {
-    const hi=parseFloat(h), vi=parseFloat(v), sri=sr?parseFloat(sr):null; if (!hi||!vi) return;
-    const g=gapFn(hi,vi,sri), pct=dunkPctFn(hi,vi,sri), wk=weeksEst(g);
-    const lvId=levelForVert(vi, hi, sri);
+    const hi=parseFloat(h), vi=calcVert, sri=sr?parseFloat(sr):null; if (!hi||!Number.isFinite(vi)) return;
+    const currentTouchHeight = vertMode==="unknown" && selectedTouch ? selectedTouch.height : maxTouchFn(hi, vi, sri);
+    const g=gapFromTouchFn(currentTouchHeight), pct=dunkPctFromTouchFn(currentTouchHeight), wk=weeksEst(g);
+    const lvId=vertMode==="unknown" && selectedTouch ? levelForTouch(currentTouchHeight) : levelForVert(vi, hi, sri);
     const lv=LEVELS.find(l=>l.id===lvId)||LEVELS[0];
-    setRes({g,pct,wk,lv,h:hi,v:vi,standingReach:sri});
+    setRes({g,pct,wk,lv,h:hi,v:vi,standingReach:sri,currentTouchHeight,verticalEstimated:vertMode==="unknown",touchPoint:selectedTouch?.label});
   }
   return (
     <div className="fade">
@@ -1046,16 +1096,38 @@ function DunkCalc({onStart, accentColor}) {
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:16}}>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:accent,letterSpacing:".16em",marginBottom:12}}>CAN YOU DUNK? — 10 SECONDS</div>
-            <div style={{display:"flex",gap:10}}>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>HEIGHT (inches)</div>
-                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?accent:C.border}}/>
+                <input type="number" placeholder="e.g. 66" value={h} onChange={e=>setH(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:h?accent:C.border,width:"100%",boxSizing:"border-box"}}/>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>5'5"=65 · 5'10"=70 · 6'=72</div>
               </div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:C.muted,marginBottom:5}}>VERTICAL (inches)</div>
-                <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?accent:C.border}}/>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8,marginBottom:8}}>
+                  {[
+                    ["known","I know my vertical"],
+                    ["unknown","I don't know my vertical"],
+                  ].map(([mode,label])=>(
+                    <button key={mode} onClick={()=>setVertMode(mode)} style={{minHeight:46,width:"100%",background:vertMode===mode?`${accent}20`:"#0C0C14",border:`1px solid ${vertMode===mode?accent:C.border}`,color:vertMode===mode?accent:"#E8E8F0",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"9px 7px",borderRadius:7,lineHeight:1.35,whiteSpace:"normal",overflowWrap:"anywhere"}}>{label}</button>
+                  ))}
+                </div>
+                {vertMode==="known" ? (
+                  <>
+                    <input type="number" placeholder="e.g. 22" value={v} onChange={e=>setV(e.target.value)} style={{fontSize:22,padding:"11px 12px",borderColor:v?accent:C.border,width:"100%",boxSizing:"border-box"}}/>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,marginTop:3}}>Unsure? Start with 20"</div>
+                  </>
+                ) : (
+                  <div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:7}}>
+                      {touchPoints.map(p=>(
+                        <button key={p.id} onClick={()=>setTouchPoint(p.id)} style={{minHeight:44,width:"100%",background:touchPoint===p.id?`${accent}20`:C.dim,border:`1px solid ${touchPoint===p.id?accent:C.border}`,color:touchPoint===p.id?accent:"#E8E8F0",fontFamily:"'DM Mono',monospace",fontSize:10,padding:"9px 8px",borderRadius:7,lineHeight:1.25,whiteSpace:"normal",overflowWrap:"break-word"}}>{p.label}</button>
+                      ))}
+                    </div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:selectedTouch?"#F4F4FF":C.muted,background:selectedTouch?`${accent}14`:C.dim,border:`1px solid ${selectedTouch?accent+"55":C.border}`,borderRadius:7,padding:"9px 10px",marginTop:8,lineHeight:1.55}}>{touchHelp}</div>
+                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,marginTop:6,lineHeight:1.5}}>In this mode, your dunk gap is based on the highest point you can touch. Standing reach only changes your estimated vertical.</div>
+                  </div>
+                )}
               </div>
             </div>
             <div style={{marginTop:10}}>
@@ -1064,7 +1136,7 @@ function DunkCalc({onStart, accentColor}) {
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:srHasValue&&!srValid?C.gold:C.muted,marginTop:3,lineHeight:1.5}}>{srHelp}</div>
             </div>
           </div>
-          <button onClick={calc} disabled={!h||!v} className={h&&v?"glowbtn":""} style={{width:"100%",background:h&&v?accent:"#111",color:h&&v?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:h&&v?1:.5}}>FIND OUT →</button>
+          <button onClick={calc} disabled={!canCalc} className={canCalc?"glowbtn":""} style={{width:"100%",background:canCalc?accent:"#111",color:canCalc?"#000":"#333",border:"none",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:".1em",padding:"15px 0",borderRadius:7,opacity:canCalc?1:.5}}>FIND OUT →</button>
         </div>
       ) : (
         <div className="pop" style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -1087,7 +1159,7 @@ function DunkCalc({onStart, accentColor}) {
           {res.g>0&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 14px"}}>
               <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.muted,letterSpacing:".14em",marginBottom:8}}>YOUR PATH</div>
-              {LEVELS.filter(l=>levelVert(l.id,res.h,res.standingReach)>res.v).slice(0,3).map((lv,i)=>{
+              {LEVELS.filter(l=>{const touchTarget=levelTouchHeight(l.id);return touchTarget!==null&&touchTarget>(res.currentTouchHeight??maxTouchFn(res.h,res.v,res.standingReach));}).slice(0,3).map((lv,i)=>{
                 // Height-adjusted vertical needed — single source of truth
                 const vertNeeded = levelVert(lv.id, res.h, res.standingReach);
                 return (
@@ -1117,9 +1189,9 @@ function DunkCalc({onStart, accentColor}) {
 function Onboarding({calcRes,onComplete, accentColor}) {
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
   const [step,setStep]=useState(0);
-  const initialLevel = calcRes ? levelForVert(calcRes.v, calcRes.h, calcRes.standingReach) : 3;
+  const initialLevel = calcRes ? (calcRes.currentTouchHeight != null ? levelForTouch(calcRes.currentTouchHeight) : levelForVert(calcRes.v, calcRes.h, calcRes.standingReach)) : 3;
   const [d,setD]=useState({name:"",age:"",height:calcRes?.h?.toString()||"",level:initialLevel,skill:"beginner",vertical:calcRes?.v?.toString()||"",standingReach:calcRes?.standingReach?.toString()||""});
-  const onboardingReachValid = parseInches(d.standingReach, 60, 130) !== null;
+  const onboardingReachValid = measuredReach(d.height, d.standingReach) !== null;
   const onboardingReachHasValue = `${d.standingReach}`.trim() !== "";
   const onboardingReachEstimate = effectiveReach(d.height, null);
   const onboardingReachHelp = onboardingReachHasValue
